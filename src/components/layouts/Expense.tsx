@@ -1,6 +1,14 @@
 "use client";
 import { useState } from "react";
 
+type Expense = {
+  category: string;
+  amount: number;
+  date: string; 
+  description: string;
+  employee: string;
+};
+
 export default function ExpenseManager() {
   const defaultCategories = [
     "Rent",
@@ -10,12 +18,13 @@ export default function ExpenseManager() {
     "Travel",
     "Miscellaneous",
   ];
+
   const [categories, setCategories] = useState(defaultCategories);
   const [newCategory, setNewCategory] = useState("");
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [form, setForm] = useState({
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [form, setForm] = useState<Expense>({
     category: "Rent",
-    amount: "",
+    amount: 0,
     date: "",
     description: "",
     employee: "",
@@ -35,7 +44,7 @@ export default function ExpenseManager() {
     setExpenses([...expenses, form]);
     setForm({
       category: "Rent",
-      amount: "",
+      amount: 0,
       date: "",
       description: "",
       employee: "",
@@ -48,9 +57,10 @@ export default function ExpenseManager() {
         <h1 className="text-3xl font-semibold mb-6 text-center">
           Expense Manager
         </h1>
+
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-center">Categories</h2>
-          <div className=" mb-4">
+          <div className="mb-4">
             <input
               type="text"
               value={newCategory}
@@ -67,6 +77,7 @@ export default function ExpenseManager() {
             </button>
           </div>
         </section>
+
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-center">
             Add Expense
@@ -85,15 +96,19 @@ export default function ExpenseManager() {
                 </option>
               ))}
             </select>
+
             <label className="block text-sm font-medium mb-1">Amount</label>
             <input
               type="number"
               placeholder="Amount"
               value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, amount: Number(e.target.value) })
+              }
               className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
+
             <label className="block text-sm font-medium mb-1">Date</label>
             <input
               type="date"
@@ -102,15 +117,26 @@ export default function ExpenseManager() {
               className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
+
+            <label className="block text-sm font-medium mb-1">Description</label>
             <input
               type="text"
               placeholder="Description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
+              }
+              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
+               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+
+            <label className="block text-sm font-medium mb-1">Employee</label>
+            <input
+              type="text"
+              placeholder="Employee name"
+              value={form.employee}
+              onChange={(e) =>
+                setForm({ ...form, employee: e.target.value })
               }
               className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
@@ -124,6 +150,7 @@ export default function ExpenseManager() {
             </button>
           </div>
         </section>
+
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-center">
             Expenses List
@@ -145,6 +172,30 @@ export default function ExpenseManager() {
               ))}
             </select>
           </div>
+
+          <ul className="space-y-2">
+            {expenses
+              .filter(
+                (exp) =>
+                  filterCategory === "All" || exp.category === filterCategory
+              )
+              .map((exp, i) => (
+                <li
+                  key={i}
+                  className="p-3 bg-white/10 rounded-xl flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-medium">{exp.category}</p>
+                    <p className="text-sm text-gray-300">{exp.description}</p>
+                    <p className="text-sm text-gray-400">{exp.employee}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">${exp.amount.toFixed(2)}</p>
+                    <p className="text-xs text-gray-400">{exp.date}</p>
+                  </div>
+                </li>
+              ))}
+          </ul>
         </section>
         <section>
           <h2 className="text-xl font-semibold mb-3 text-center">Reports</h2>
