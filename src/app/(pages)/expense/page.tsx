@@ -1,10 +1,10 @@
-import Signup from '@/components/layouts/Signup'
+import ExpensesPage from '@/components/layouts/Expense'
 import React from 'react'
 
 const page = () => {
   return (
     <div>
-      <Signup/>
+      <ExpensesPage/>
     </div>
   )
 }
