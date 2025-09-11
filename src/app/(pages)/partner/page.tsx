@@ -1,12 +1,13 @@
-import Home from '@/components/layouts/Partner'
-import React from 'react'
+import DashboardLayout from "@/components/layouts/DashboardLayout";
+import Home from "@/components/layouts/Partner";
+import React from "react";
 
 const page = () => {
   return (
-    <div>
-      <Home/>
-    </div>
-  )
-}
+    <DashboardLayout>
+      <Home />
+    </DashboardLayout>
+  );
+};
 
-export default page
+export default page;

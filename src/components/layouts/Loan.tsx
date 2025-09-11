@@ -34,7 +34,7 @@ export default function Home() {
           />
           <label className="block text-sm font-medium mb-1">Loan Amount</label>
           <input
-            type="number"
+            type="text"
             placeholder="Loan Amount"
             value={loan.amount}
             onChange={(e) => setLoan({ ...loan, amount: e.target.value })}
@@ -43,7 +43,7 @@ export default function Home() {
           />
           <label className="block text-sm font-medium mb-1">Interest </label>
           <input
-            type="number"
+            type="text"
             placeholder="Interest Rate (%)"
             value={loan.interest}
             onChange={(e) => setLoan({ ...loan, interest: e.target.value })}
@@ -52,7 +52,7 @@ export default function Home() {
           />
           <label className="block text-sm font-medium mb-1">Duration</label>
           <input
-            type="number"
+            type="text"
             placeholder="Duration (months)"
             value={loan.duration}
             onChange={(e) => setLoan({ ...loan, duration: e.target.value })}
@@ -66,7 +66,7 @@ export default function Home() {
         <div className="space-y-3">
           <label className="block text-sm font-medium mb-1">EMI Amount</label>
           <input
-            type="number"
+            type="text"
             placeholder="EMI Amount"
             value={repayment.emi}
             onChange={(e) =>

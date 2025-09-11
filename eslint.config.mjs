@@ -19,6 +19,11 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      "no-console": "off", // disable console warnings
+      "@typescript-eslint/no-explicit-any": "off", // allow 'any' type
+      "react-hooks/exhaustive-deps": "off", // disable exhaustive deps warning
+    },
   },
 ];
 

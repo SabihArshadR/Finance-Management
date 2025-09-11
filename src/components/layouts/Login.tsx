@@ -1,4 +1,5 @@
 "use client";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
@@ -11,15 +12,16 @@ export default function Login() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
+  const apiUrl = "https://finance-backend-phi.vercel.app";
+
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let isValid = true;
-
     setEmailError("");
     setPasswordError("");
 
@@ -36,15 +38,27 @@ export default function Login() {
     }
     if (!isValid) return;
 
-    router.push("/");
-  };
+    try {
+      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+        email,
+        password,
+      });
+      console.log("Login response:", response.data.data.token);
+      localStorage.setItem("token", response.data.data.token);
 
+      router.push("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+
+      if (error.response?.data?.message) {
+      } else {
+      }
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
-        <h2 className="text-3xl font-bold mb-8 text-center">
-          Welcome Back
-        </h2>
+        <h2 className="text-3xl font-bold mb-8 text-center">Welcome Back</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>

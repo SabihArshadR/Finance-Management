@@ -1,28 +1,27 @@
 "use client";
-
+import axios from "axios";
 import { useState } from "react";
 
 type Employee = {
-  id?: string;
   name: string;
-  designation: string;
-  salary: number;
-  joiningDate: string;
+  email: string;
+  password: string;
+  salary: string;
   bankAccount: string;
-  allowance: number;
-  bonus: number;
+  allowance: string;
 };
 
 export default function Home() {
   const [form, setForm] = useState<Employee>({
     name: "",
-    designation: "",
-    salary: 0,
-    joiningDate: "",
+    email: "",
+    password: "",
+    salary: "",
     bankAccount: "",
-    allowance: 0,
-    bonus: 0,
+    allowance: "",
   });
+
+  const apiUrl = "https://finance-backend-phi.vercel.app";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -32,6 +31,68 @@ export default function Home() {
       [name]: type === "number" ? Number(value) : value,
     }));
   };
+
+  const handleAddEmployee = async () => {
+    const token = localStorage.getItem("token");
+    console.log("Token:", token);
+
+    if (!token) {
+      alert("No token found. Please login first.");
+      return;
+    }
+
+    const payload = {
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      role: "employee",
+      salary: Number(form.salary),
+      meta: {
+        bankAccount: form.bankAccount,
+        allowance: Number(form.allowance),
+      },
+    };
+
+    console.log("Employee payload being sent:", payload);
+
+    try {
+      const response = await axios.post(
+        `${apiUrl}/api/auth/add-user`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Response:", response.data);
+
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        salary: "",
+        bankAccount: "",
+        allowance: "",
+      });
+
+      alert("Employee added successfully!");
+    } catch (error: any) {
+      console.error("Error adding employee:", error.response?.data || error);
+      alert("Failed to add employee. Please try again.");
+    }
+  };
+
+  async function allusers() {
+    const token = localStorage.getItem("token");
+    const res = await axios.get(`${apiUrl}/api/auth/get-users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log(res)
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
@@ -44,36 +105,39 @@ export default function Home() {
             className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
              placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             name="name"
+            type="text"
             placeholder="Employee Name"
             value={form.name}
             onChange={handleChange}
           />
-          <label className="block text-sm font-medium mb-1">Designation</label>
+          <label className="block text-sm font-medium mb-1">Email</label>
           <input
             className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
              placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            name="designation"
-            placeholder="Employee Designation"
-            value={form.designation}
+            name="email"
+            type="email"
+            placeholder="Employee Email"
+            value={form.email}
+            onChange={handleChange}
+          />
+          <label className="block text-sm font-medium mb-1">Password</label>
+          <input
+            type="password"
+            className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
+             placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            name="password"
+            placeholder="Employee Password"
+            value={form.password}
             onChange={handleChange}
           />
           <label className="block text-sm font-medium mb-1">Salary</label>
           <input
-            type="number"
+            type="text"
             className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
              placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             name="salary"
-            placeholder="Employee Salary"
             value={form.salary}
-            onChange={handleChange}
-          />
-          <label className="block text-sm font-medium mb-1">Joining Date</label>
-          <input
-            type="date"
-            className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-             placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            name="joiningDate"
-            value={form.joiningDate}
+            placeholder="Employee Salary"
             onChange={handleChange}
           />
           <label className="block text-sm font-medium mb-1">
@@ -89,7 +153,7 @@ export default function Home() {
           />
           <label className="block text-sm font-medium mb-1">Allowance</label>
           <input
-            type="number"
+            type="text"
             className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
              placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             name="allowance"
@@ -97,22 +161,15 @@ export default function Home() {
             value={form.allowance}
             onChange={handleChange}
           />
-          <label className="block text-sm font-medium mb-1">Bonus</label>
-          <input
-            type="number"
-            className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-             placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            name="bonus"
-            placeholder="Employee Bonus"
-            value={form.bonus}
-            onChange={handleChange}
-          />
         </div>
 
-        <button className="w-full mt-10 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <button 
+        onClick={handleAddEmployee}
+        className="w-full mt-10 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Add Employee
         </button>
       </div>
+      <button onClick={allusers}>get user</button>
     </main>
   );
 }

@@ -99,7 +99,7 @@ export default function ExpenseManager() {
 
             <label className="block text-sm font-medium mb-1">Amount</label>
             <input
-              type="number"
+              type="text"
               placeholder="Amount"
               value={form.amount}
               onChange={(e) =>
