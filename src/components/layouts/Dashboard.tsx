@@ -10,7 +10,7 @@ const Dashdboard = () => {
         Dashboard
       </h1>
       <div className="desktop:grid desktop:grid-cols-2 tablet:grid-cols-1 mobile:grid-cols-1 p-5 justify-between gap-10">
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl overflow-y-scroll">
+        <div className="mt-10 border bg-[#0A102B] rounded-2xl desktop:overflow-hidden tablet:overflow-auto mobile:overflow-auto">
           <LineCharts />
         </div>
         <div className="mt-10 border bg-[#0A102B] rounded-2xl flex justify-center items-center w-full">
@@ -21,7 +21,7 @@ const Dashdboard = () => {
         <div className="mt-10 border bg-[#0A102B] rounded-2xl flex justify-center items-center w-full">
           <PieCharts />
         </div>
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl overflow-y-scroll">
+        <div className="mt-10 border bg-[#0A102B] rounded-2xl desktop:overflow-hidden tablet:overflow-auto mobile:overflow-auto">
           <LineCharts />
         </div>
       </div>
