@@ -52,7 +52,7 @@ export default function ExpenseManager() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <main className="min-h-screen flex desktop:p-0 tablet:p-0 mobile:p-2 items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
         <h1 className="text-3xl font-semibold mb-6 text-center">
           Expense Manager

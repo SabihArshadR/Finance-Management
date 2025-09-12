@@ -48,12 +48,13 @@ export default function DashboardLayout({
   ];
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
     router.push("/");
   };
 
   return (
     <div className="flex h-screen bg-gray-100 text-gray-800">
-      <div className="w-64 bg-gray-900 text-white flex flex-col">
+      <div className="desktop:flex tablet:flex mobile:hidden w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-6">
           <h2 className="text-lg">Finance Management</h2>
         </div>
@@ -76,7 +77,7 @@ export default function DashboardLayout({
         <div className="">
           <div
             onClick={handleLogout}
-            className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+            className="flex items-center space-x-3 p-5 rounded-lg cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
           >
             <FiLogOut className="text-xl" />
             <span className="font-medium">Logout</span>
@@ -84,19 +85,15 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden ">
-        {/* Top Bar */}
-        {/* <header className=" ">
-          <h2 className="text-xl font-semibold">
+        {/* <h2 className="text-xl font-semibold">
             {navItems.find((item) => item.path === pathname)?.label ||
               "Dashboard"}
-          </h2>
-        </header> */}
-
-        {/* Page Content */}
+          </h2> */}
         <main className="h-full w-full">
-          <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 h-full w-full overflow-auto">{children}</div>
+          <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 h-full w-full overflow-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

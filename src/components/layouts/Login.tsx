@@ -49,6 +49,8 @@ export default function Login() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
+      setEmailError(error.response.data.message);
+      setPasswordError(error.response.data.message);
 
       if (error.response?.data?.message) {
       } else {
@@ -57,7 +59,7 @@ export default function Login() {
   };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
+      <div className="w-full desktop:w-[450px] tablet:w-[450px] mobile:w-[300px] bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
         <h2 className="text-3xl font-bold mb-8 text-center">Welcome Back</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -70,7 +72,7 @@ export default function Login() {
               placeholder="JohnDoe@example.com"
             />
             {emailError && (
-              <p className="text-red-400 text-sm mt-1">{emailError}</p>
+              <p className="text-red-400 text-sm mt-">{emailError}</p>
             )}
           </div>
           <div>
@@ -105,7 +107,7 @@ export default function Login() {
         <p className="mt-6 text-center text-sm text-gray-400">
           Forgot your password?{" "}
           <button
-            onClick={() => router.push("/signup")}
+            onClick={() => router.push("")}
             className="text-blue-500 hover:underline font-medium"
           >
             Reset

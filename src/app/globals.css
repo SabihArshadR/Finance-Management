@@ -6,6 +6,12 @@
 }
 
 @theme inline {
+  --breakpoint-*: initial;
+  --breakpoint-mobile: 350px;
+  --breakpoint-tablet: 768px;
+  /* --breakpoint-desktop: 1248px ; */
+  --breakpoint-desktop: 1280px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
