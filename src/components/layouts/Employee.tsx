@@ -1,8 +1,8 @@
 "use client";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FiGrid, FiList } from "react-icons/fi";
-import { FiEdit2 } from "react-icons/fi";
+import { FiGrid, FiList, FiEdit2 } from "react-icons/fi";
+import { ErrorToast, SuccessToast } from "../ui/Toast";
 
 type Employee = {
   _id: string;
@@ -23,6 +23,9 @@ export default function Home() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -32,51 +35,63 @@ export default function Home() {
     allowance: "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const apiUrl = "https://finance-backend-phi.vercel.app";
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.warn("No token found. Please login first.");
-          return;
+  const fetchEmployees = async () => {
+    try {
+      setFetching(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await axios.get(
+        `${apiUrl}/api/auth/list?role=employee`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
+      );
 
-        const response = await axios.get(
-          `${apiUrl}/api/auth/list?role=employee`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+      setEmployees(Array.isArray(response.data.data) ? response.data.data : []);
+    } catch (error: any) {
+      console.error("Error fetching employees:", error.response?.data || error);
+    } finally {
+      setFetching(false);
+    }
+  };
 
-        const data = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
-        setEmployees(data);
-        console.log(data)
-      } catch (error: any) {
-        console.error(
-          "Error fetching employees:",
-          error.response?.data || error
-        );
-      }
-    };
-
+  useEffect(() => {
     fetchEmployees();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    if (["salary", "bankAccount", "allowance"].includes(name)) {
-      if (!/^\d*$/.test(value)) return;
+    if (
+      ["salary", "bankAccount", "allowance"].includes(name) &&
+      !/^\d*$/.test(value)
+    ) {
+      return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.name) newErrors.name = "Please enter name";
+    if (!selectedEmployee && !form.email)
+      newErrors.email = "Please enter email";
+    if (!selectedEmployee && !form.password)
+      newErrors.password = "Please enter password";
+    if (!form.salary) newErrors.salary = "Please enter salary";
+    if (!form.bankAccount) newErrors.bankAccount = "Please enter bank account";
+    if (!form.allowance) newErrors.allowance = "Please enter allowance";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const resetForm = () => {
@@ -88,13 +103,16 @@ export default function Home() {
       bankAccount: "",
       allowance: "",
     });
+    setErrors({});
     setSelectedEmployee(null);
   };
 
   const handleAddEmployee = async () => {
+    if (!validateForm()) return;
+
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("No token found. Please login first.");
+      ErrorToast("No token found. Please login first.");
       return;
     }
 
@@ -111,28 +129,45 @@ export default function Home() {
     };
 
     try {
+      setLoading(true);
       const response = await axios.post(
         `${apiUrl}/api/auth/add-user`,
         payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       setEmployees((prev) => [...prev, response.data.user]);
       resetForm();
       setIsModalOpen(false);
-      alert("Employee added successfully!");
+      SuccessToast("Employee added successfully!");
     } catch (error: any) {
       console.error("Error adding employee:", error.response?.data || error);
-      alert("Failed to add employee. Please try again.");
+      ErrorToast("Failed to add employee. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdateEmployee = async () => {
+    if (!validateForm()) return;
     if (!selectedEmployee) return;
+
+    const noChanges =
+      form.name === selectedEmployee.name &&
+      Number(form.salary) === selectedEmployee.salary &&
+      form.bankAccount === (selectedEmployee.meta?.bankAccount || "") &&
+      Number(form.allowance) === (selectedEmployee.meta?.allowance || 0);
+
+    if (noChanges) {
+      ErrorToast("Please make some changes before updating.");
+      return;
+    }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("No token found. Please login first.");
+      ErrorToast("No token found. Please login first.");
       return;
     }
 
@@ -145,24 +180,14 @@ export default function Home() {
       },
     };
 
-    const noChanges =
-      payload.name === selectedEmployee.name &&
-      payload.salary === selectedEmployee.salary &&
-      payload.meta.bankAccount === selectedEmployee.meta.bankAccount &&
-      payload.meta.allowance === selectedEmployee.meta.allowance;
-
-    if (noChanges) {
-      alert("No changes to update.");
-      return;
-    }
-
     try {
-      const response = await axios.put(
+      setLoading(true);
+      await axios.put(
         `${apiUrl}/api/auth/update/${selectedEmployee._id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(response)
+
       setEmployees((prev) =>
         prev.map((emp) =>
           emp._id === selectedEmployee._id ? { ...emp, ...payload } : emp
@@ -171,10 +196,12 @@ export default function Home() {
 
       resetForm();
       setIsModalOpen(false);
-      alert("Employee updated successfully!");
+      SuccessToast("Employee updated successfully!");
     } catch (error: any) {
       console.error("Error updating employee:", error.response?.data || error);
-      alert("Failed to update employee. Please try again.");
+      ErrorToast("Failed to update employee. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,25 +215,31 @@ export default function Home() {
       bankAccount: emp.meta?.bankAccount || "",
       allowance: emp.meta?.allowance?.toString() || "",
     });
+    setErrors({});
     setIsModalOpen(true);
   };
 
   return (
-    <main className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+    <main
+      className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 
+    bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white"
+    >
       <div className="flex justify-between items-center mb-6">
-        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">Employees</h1>
+        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
+          Employees
+        </h1>
         <div className="flex gap-4">
           {viewMode === "grid" ? (
             <button
               onClick={() => setViewMode("list")}
-              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600"
+              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiList size={20} />
             </button>
           ) : (
             <button
               onClick={() => setViewMode("grid")}
-              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600"
+              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiGrid size={20} />
             </button>
@@ -216,15 +249,18 @@ export default function Home() {
               resetForm();
               setIsModalOpen(true);
             }}
-            className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700"
+            className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
           >
             + Add Employee
           </button>
         </div>
       </div>
-
-      {viewMode === "grid" ? (
-        <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-q gap-6">
+      {fetching ? (
+        <p className="text-center text-gray-400 mt-10">Loading employees...</p>
+      ) : employees.length === 0 ? (
+        <p className="text-center text-gray-400 mt-10">No employees found.</p>
+      ) : viewMode === "grid" ? (
+        <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
           {employees.map((emp) => (
             <div
               key={emp._id}
@@ -232,7 +268,7 @@ export default function Home() {
             >
               <button
                 onClick={() => openEditModal(emp)}
-                className="absolute top-3 right-3 text-gray-300 hover:text-white bg-blu"
+                className="absolute top-6 right-3 text-gray-300 hover:text-white cursor-pointer"
               >
                 <FiEdit2 size={18} />
               </button>
@@ -248,7 +284,6 @@ export default function Home() {
           ))}
         </div>
       ) : (
-
         <div className="space-y-4">
           {employees.map((emp) => (
             <div
@@ -257,7 +292,7 @@ export default function Home() {
             >
               <button
                 onClick={() => openEditModal(emp)}
-                className="absolute top-3 right-3 text-gray-300 hover:text-white"
+                className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer"
               >
                 <FiEdit2 size={18} />
               </button>
@@ -277,12 +312,11 @@ export default function Home() {
           ))}
         </div>
       )}
-
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white"
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
               onClick={() => {
                 resetForm();
                 setIsModalOpen(false);
@@ -295,90 +329,126 @@ export default function Home() {
             </h2>
 
             <div className="space-y-4">
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <input
-                className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                name="name"
-                type="text"
-                placeholder="Employee Name"
-                value={form.name}
-                onChange={handleChange}
-              />
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.name ? "border-red-500" : "border-white/20"
+                  }`}
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Employee Name"
+                />
+                {errors.name && (
+                  <p className="text-red-400 text-sm">{errors.name}</p>
+                )}
+              </div>
 
               {!selectedEmployee && (
                 <>
-                  <label className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  <input
-                    className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    name="email"
-                    type="email"
-                    placeholder="Employee Email"
-                    value={form.email}
-                    onChange={handleChange}
-                  />
-                  <label className="block text-sm font-medium mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    name="password"
-                    placeholder="Employee Password"
-                    value={form.password}
-                    onChange={handleChange}
-                  />
+                  <div className="">
+                    <label className="block text-sm font-medium mb-1">
+                      Email
+                    </label>
+                    <input
+                      className={` w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                        errors.email ? "border-red-500" : "border-white/20"
+                      }`}
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="Employee Email"
+                    />
+                    {errors.email && (
+                      <p className=" text-red-400 text-sm">{errors.email}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Password
+                    </label>
+                    <input
+                      className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                        errors.password ? "border-red-500" : "border-white/20"
+                      }`}
+                      name="password"
+                      type="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      placeholder="Employee Password"
+                    />
+                    {errors.password && (
+                      <p className="text-red-400 text-sm">{errors.password}</p>
+                    )}
+                  </div>
                 </>
               )}
-
-              <label className="block text-sm font-medium mb-1">Salary</label>
-              <input
-                type="text"
-                className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                name="salary"
-                value={form.salary}
-                placeholder="Employee Salary"
-                onChange={handleChange}
-              />
-
-              <label className="block text-sm font-medium mb-1">
-                Bank Account
-              </label>
-              <input
-                className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                name="bankAccount"
-                placeholder="Employee Account Number"
-                value={form.bankAccount}
-                onChange={handleChange}
-              />
-
-              <label className="block text-sm font-medium mb-1">
-                Allowance
-              </label>
-              <input
-                type="text"
-                className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                name="allowance"
-                placeholder="Employee Allowance"
-                value={form.allowance}
-                onChange={handleChange}
-              />
+              <div>
+                <label className="block text-sm font-medium mb-1">Salary</label>
+                <input
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.salary ? "border-red-500" : "border-white/20"
+                  }`}
+                  name="salary"
+                  value={form.salary}
+                  onChange={handleChange}
+                  placeholder="Employee Salary"
+                />
+                {errors.salary && (
+                  <p className="text-red-400 text-sm">{errors.salary}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Bank Account
+                </label>
+                <input
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.bankAccount ? "border-red-500" : "border-white/20"
+                  }`}
+                  name="bankAccount"
+                  value={form.bankAccount}
+                  onChange={handleChange}
+                  placeholder="Employee Bank Account"
+                />
+                {errors.bankAccount && (
+                  <p className="text-red-400 text-sm">{errors.bankAccount}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Allowance
+                </label>
+                <input
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.allowance ? "border-red-500" : "border-white/20"
+                  }`}
+                  name="allowance"
+                  value={form.allowance}
+                  onChange={handleChange}
+                  placeholder="Employee Allowance"
+                />
+                {errors.allowance && (
+                  <p className="text-red-400 text-sm">{errors.allowance}</p>
+                )}
+              </div>
             </div>
-
             <button
               onClick={
                 selectedEmployee ? handleUpdateEmployee : handleAddEmployee
               }
-              className="w-full mt-10 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              disabled={loading}
+              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
             >
-              {selectedEmployee ? "Save Changes" : "Add Employee"}
+              {loading
+                ? selectedEmployee
+                  ? "Saving Changes ..."
+                  : "Adding Employee ..."
+                : selectedEmployee
+                ? "Save Changes"
+                : "Add Employee"}
             </button>
           </div>
         </div>

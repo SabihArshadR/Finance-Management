@@ -3,6 +3,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { ErrorToast, SuccessToast } from "../ui/Toast";
 
 export default function Login() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const apiUrl = "https://finance-backend-phi.vercel.app";
 
@@ -20,6 +22,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     let isValid = true;
     setEmailError("");
@@ -32,31 +35,30 @@ export default function Login() {
     if (!password) {
       setPasswordError("Please enter password");
       isValid = false;
-    } else if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-      isValid = false;
     }
-    if (!isValid) return;
+
+    if (!isValid) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await axios.post(`${apiUrl}/api/auth/login`, {
         email,
         password,
       });
-      console.log("Login response:", response.data.data.token);
-      localStorage.setItem("token", response.data.data.token);
 
+      localStorage.setItem("token", response.data.data.token);
+      SuccessToast("Login Successfully");
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      setEmailError(error.response.data.message);
-      setPasswordError(error.response.data.message);
-
-      if (error.response?.data?.message) {
-      } else {
-      }
+      ErrorToast(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="w-full desktop:w-[450px] tablet:w-[450px] mobile:w-[300px] bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
@@ -72,7 +74,7 @@ export default function Login() {
               placeholder="JohnDoe@example.com"
             />
             {emailError && (
-              <p className="text-red-400 text-sm mt-">{emailError}</p>
+              <p className="text-red-400 text-sm mt-1">{emailError}</p>
             )}
           </div>
           <div>
@@ -99,9 +101,10 @@ export default function Login() {
           </div>
           <button
             type="submit"
-            className="mt-5 w-full bg-blue-600 hover:bg-blue-700 transition text-white font-semibold py-3 rounded-xl shadow-md cursor-pointer"
+            disabled={loading}
+            className="mt-5 w-full bg-blue-600 hover:bg-blue-700 transition text-white font-semibold py-3 rounded-xl shadow-md cursor-pointer disabled:opacity-50"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-400">

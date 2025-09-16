@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { FiGrid, FiList, FiEdit2 } from "react-icons/fi";
+import { ErrorToast, SuccessToast } from "../ui/Toast";
 
 type Partner = {
   _id: string;
@@ -25,18 +26,43 @@ export default function Home() {
     percentage: "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+
   const apiUrl = "https://finance-backend-phi.vercel.app";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "percentage" && !/^\d*$/.test(value)) return;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!form.name) newErrors.name = "Please enter name";
+    if (!editingPartner && !form.email) newErrors.email = "Please enter email";
+    if (!editingPartner && !form.password)
+      newErrors.password = "Please enter password";
+    if (!form.percentage) newErrors.percentage = "Please enter investment %";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setForm({ name: "", email: "", password: "", percentage: "" });
+    setErrors({});
+    setEditingPartner(null);
   };
 
   const handleAddPartner = async () => {
+    if (!validateForm()) return;
+
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("No token found. Please login first.");
+      ErrorToast("No token found. Please login first.");
       return;
     }
 
@@ -49,35 +75,40 @@ export default function Home() {
     };
 
     try {
-      await axios.post(`${apiUrl}/api/auth/add-user`, payload, {
+      setLoading(true);
+      await axios.post(`${apiUrl}/api/auth/add-users`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setForm({ name: "", email: "", password: "", percentage: "" });
+      resetForm();
       setIsModalOpen(false);
       fetchPartners();
-      alert("Partner added successfully!");
+      SuccessToast("Partner added successfully!");
     } catch (error: any) {
       console.error("Error adding partner:", error.response?.data || error);
-      alert("Failed to add partner. Please try again.");
+      ErrorToast("Failed to add partner. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdatePartner = async () => {
+    if (!validateForm()) return;
     if (!editingPartner) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("No token found. Please login first.");
+    const noChanges =
+      form.name === editingPartner.name &&
+      form.email === editingPartner.email &&
+      Number(form.percentage) === editingPartner.percentage;
+
+    if (noChanges) {
+      ErrorToast("Please make some changes before updating.");
       return;
     }
 
-    if (
-      form.name === editingPartner.name &&
-      form.email === editingPartner.email &&
-      Number(form.percentage) === editingPartner.percentage
-    ) {
-      alert("No changes to update");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      ErrorToast("No token found. Please login first.");
       return;
     }
 
@@ -88,26 +119,28 @@ export default function Home() {
     };
 
     try {
+      setLoading(true);
       await axios.put(
         `${apiUrl}/api/auth/update/${editingPartner._id}`,
         payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      resetForm();
       setIsModalOpen(false);
-      setEditingPartner(null);
       fetchPartners();
-      alert("Partner updated successfully!");
+      SuccessToast("Partner updated successfully!");
     } catch (error: any) {
       console.error("Error updating partner:", error.response?.data || error);
-      alert("Failed to update partner. Please try again.");
+      ErrorToast("Failed to update partner. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchPartners = async () => {
     try {
+      setPageLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return;
 
@@ -119,6 +152,8 @@ export default function Home() {
       setPartners(data);
     } catch (error: any) {
       console.error("Error fetching partners:", error.response?.data || error);
+    } finally {
+      setPageLoading(false);
     }
   };
 
@@ -134,43 +169,50 @@ export default function Home() {
       password: "",
       percentage: String(partner.percentage),
     });
+    setErrors({});
     setIsModalOpen(true);
   };
 
   return (
     <main className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">Partners</h1>
+        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
+          Partners
+        </h1>
         <div className="flex gap-4">
           {viewMode === "grid" ? (
             <button
               onClick={() => setViewMode("list")}
-              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600"
+              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiList size={20} />
             </button>
           ) : (
             <button
               onClick={() => setViewMode("grid")}
-              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600"
+              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiGrid size={20} />
             </button>
           )}
           <button
             onClick={() => {
-              setEditingPartner(null);
-              setForm({ name: "", email: "", password: "", percentage: "" });
+              resetForm();
               setIsModalOpen(true);
             }}
-            className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700"
+            className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
           >
             + Add Partner
           </button>
         </div>
       </div>
 
-      {viewMode === "grid" ? (
+      {/* Loader */}
+      {pageLoading ? (
+        <p className="text-center text-gray-300">Loading partners...</p>
+      ) : partners.length === 0 ? (
+        <p className="text-center text-gray-400">No data found</p>
+      ) : viewMode === "grid" ? (
         <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
           {partners.map((partner) => (
             <div
@@ -179,9 +221,9 @@ export default function Home() {
             >
               <button
                 onClick={() => openEditModal(partner)}
-                className="absolute top-3 right-3 p-2 bg-blue-600 rounded-full hover:bg-blue-700 cursor-pointer"
+                className="absolute top-6 right-3 text-gray-300 hover:text-white cursor-pointer"
               >
-                <FiEdit2 size={16} />
+                <FiEdit2 size={18} />
               </button>
 
               <h2 className="text-xl font-semibold">{partner.name}</h2>
@@ -215,23 +257,24 @@ export default function Home() {
               </div>
               <button
                 onClick={() => openEditModal(partner)}
-                className="absolute top-0 right-3 p-2 bg-blue-600 rounded-full hover:bg-blue-700 cursor-pointer"
+                className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer"
               >
-                <FiEdit2 size={16} />
+                <FiEdit2 size={18} />
               </button>
             </div>
           ))}
         </div>
       )}
 
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white"
+              className="absolute top-3 right-3 text-gray-300 hover:text-white text-xl cursor-pointer"
               onClick={() => {
+                resetForm();
                 setIsModalOpen(false);
-                setEditingPartner(null);
               }}
             >
               ✕
@@ -241,26 +284,43 @@ export default function Home() {
             </h2>
 
             <div className="space-y-4">
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <input
-                name="name"
-                type="text"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
-                placeholder="Partner Name"
-              />
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
-                placeholder="Partner Email"
-              />
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.name ? "border-red-500" : "border-white/20"
+                  }`}
+                  placeholder="Partner Name"
+                />
+                {errors.name && (
+                  <p className="text-red-400 text-sm">{errors.name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.email ? "border-red-500" : "border-white/20"
+                  }`}
+                  placeholder="Partner Email"
+                  disabled={!!editingPartner}
+                />
+                {errors.email && (
+                  <p className="text-red-400 text-sm">{errors.email}</p>
+                )}
+              </div>
+
               {!editingPartner && (
-                <>
+                <div>
                   <label className="block text-sm font-medium mb-1">
                     Password
                   </label>
@@ -269,29 +329,49 @@ export default function Home() {
                     type="password"
                     value={form.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                      errors.password ? "border-red-500" : "border-white/20"
+                    }`}
                     placeholder="Partner Password"
                   />
-                </>
+                  {errors.password && (
+                    <p className="text-red-400 text-sm">{errors.password}</p>
+                  )}
+                </div>
               )}
-              <label className="block text-sm font-medium mb-1">
-                Investment (%)
-              </label>
-              <input
-                name="percentage"
-                type="text"
-                value={form.percentage}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
-                placeholder="Partner Investment %"
-              />
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Investment (%)
+                </label>
+                <input
+                  name="percentage"
+                  type="text"
+                  value={form.percentage}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.percentage ? "border-red-500" : "border-white/20"
+                  }`}
+                  placeholder="Partner Investment %"
+                />
+                {errors.percentage && (
+                  <p className="text-red-400 text-sm">{errors.percentage}</p>
+                )}
+              </div>
             </div>
 
             <button
               onClick={editingPartner ? handleUpdatePartner : handleAddPartner}
-              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              disabled={loading}
+              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
             >
-              {editingPartner ? "Update Partner" : "Add Partner"}
+              {loading
+                ? editingPartner
+                  ? "Saving Changes ..."
+                  : "Adding Partner ..."
+                : editingPartner
+                ? "Save Changes"
+                : "Add Partner"}
             </button>
           </div>
         </div>

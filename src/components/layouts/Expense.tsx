@@ -1,63 +1,193 @@
 "use client";
-import { useState } from "react";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
+import { ErrorToast, SuccessToast } from "../ui/Toast";
 
 type Expense = {
   category: string;
-  amount: number;
-  date: string; 
+  categoryName?: string;
+  amount: string;
+  date: string;
   description: string;
   employee: string;
+  employeeName?: string;
+};
+
+type Category = {
+  _id: string;
+  name: string;
+};
+
+type User = {
+  _id: string;
+  name: string;
+  email: string;
 };
 
 export default function ExpenseManager() {
-  const defaultCategories = [
-    "Rent",
-    "Utilities",
-    "Office Supplies",
-    "Marketing",
-    "Travel",
-    "Miscellaneous",
-  ];
+  const apiUrl = "https://finance-backend-phi.vercel.app";
 
-  const [categories, setCategories] = useState(defaultCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [newCategory, setNewCategory] = useState("");
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [form, setForm] = useState<Expense>({
-    category: "Rent",
-    amount: 0,
+    category: "",
+    categoryName: "",
+    amount: "",
     date: "",
     description: "",
     employee: "",
+    employeeName: "",
   });
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [reportType, setReportType] = useState("monthly");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
 
-  const addCategory = () => {
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories([...categories, newCategory]);
-      setNewCategory("");
+  const getCategory = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await axios.get(`${apiUrl}/api/all-categories`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setCategories(response.data.data || []);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error.response?.data || error);
     }
   };
 
-  const addExpense = () => {
-    if (!form.amount || !form.date) return;
-    setExpenses([...expenses, form]);
-    setForm({
-      category: "Rent",
-      amount: 0,
-      date: "",
-      description: "",
-      employee: "",
-    });
+  const addCategory = async () => {
+    if (!newCategory) return;
+    setIsAddingCategory(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      await axios.post(
+        `${apiUrl}/api/add-category`,
+        { name: newCategory },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await getCategory();
+      setNewCategory("");
+      SuccessToast("Category added successfully!");
+    } catch (error: any) {
+      console.error("Error adding category:", error.response?.data || error);
+      ErrorToast("Failed to add category");
+    } finally {
+      setIsAddingCategory(false);
+    }
   };
 
+  const deleteCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      await axios.delete(`${apiUrl}/api/delete-category/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      SuccessToast("Category deleted successfully")
+      await getCategory();
+    } catch (err: any) {
+      console.error("Error deleting category:", err.response?.data || err);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.category) newErrors.category = "Please select a category";
+    if (!form.amount) newErrors.amount = "Please enter an amount";
+    if (!form.date) newErrors.date = "Please select a date";
+    if (!form.description) newErrors.description = "Please enter a description";
+    if (!form.employee) newErrors.employee = "Please select an employee";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const addExpense = async () => {
+    if (!validateForm()) return;
+    setIsAddingExpense(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const payload = {
+        spentBy: form.employee,
+        category: form.category,
+        amount: Number(form.amount),
+        flow: "in",
+        description: form.description,
+        txnDate: new Date(form.date).toISOString(),
+      };
+
+      await axios.post(`${apiUrl}/api/add-transaction`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      SuccessToast("Expense added successfully!");
+      console.log(payload)
+
+      setForm({
+        category: "",
+        categoryName: "",
+        amount: "",
+        date: "",
+        description: "",
+        employee: "",
+        employeeName: "",
+      });
+      setErrors({});
+    } catch (err: any) {
+      console.error("Error adding expense:", err.response?.data || err);
+      const errorMsg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to add expense";
+
+      ErrorToast(errorMsg);
+    } finally {
+      setIsAddingExpense(false);
+    }
+  };
+
+  // fetch users
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await axios.get(`${apiUrl}/api/auth/list`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUsers(Array.isArray(response.data.data) ? response.data.data : []);
+    } catch (error: any) {
+      console.error("Error fetching users:", error.response?.data || error);
+    }
+  };
+
+  useEffect(() => {
+    getCategory();
+    fetchUsers();
+  }, []);
+
   return (
-    <main className="min-h-screen flex desktop:p-0 tablet:p-0 mobile:p-2 items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <main className="min-h-screen flex p-4 items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="w-full max-w-md bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
         <h1 className="text-3xl font-semibold mb-6 text-center">
           Expense Manager
         </h1>
 
+        {/* Category Section */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-center">Categories</h2>
           <div className="mb-4">
@@ -71,54 +201,95 @@ export default function ExpenseManager() {
             />
             <button
               onClick={addCategory}
-              className="bg-blue-500 text-white px-4 py-2 rounded w-full mt-5"
+              disabled={isAddingCategory}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 rounded-lg w-full mt-5"
             >
-              Add
+              {isAddingCategory ? "Adding Category..." : "Add Category"}
             </button>
           </div>
+          <ul className="mt-3">
+            {categories.map((cat) => (
+              <li
+                key={cat._id}
+                className="flex justify-between items-center px-2 py-1 text-sm"
+              >
+                {cat.name}
+                <FiTrash2
+                  className="text-red-500 cursor-pointer"
+                  onClick={() => deleteCategory(cat._id)}
+                />
+              </li>
+            ))}
+          </ul>
         </section>
 
+        {/* Expense Section */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-center">
             Add Expense
           </h2>
           <div className="rounded shadow space-y-3">
+            {/* Category */}
             <label className="block text-sm font-medium mb-1">Category</label>
             <select
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  category: e.target.value,
+                  categoryName:
+                    categories.find((c) => c._id === e.target.value)?.name ||
+                    "",
+                })
+              }
+              className={`mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                errors.category ? "border-red-500" : "border-white/20"
+              }`}
             >
-              {categories.map((cat, i) => (
-                <option key={i} className="bg-gray-900">
-                  {cat}
+              <option value="" className="bg-gray-900">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id} className="bg-gray-900">
+                  {cat.name}
                 </option>
               ))}
             </select>
+            {errors.category && (
+              <p className="text-red-400 text-sm">{errors.category}</p>
+            )}
 
+            {/* Amount */}
             <label className="block text-sm font-medium mb-1">Amount</label>
             <input
               type="text"
               placeholder="Amount"
               value={form.amount}
-              onChange={(e) =>
-                setForm({ ...form, amount: Number(e.target.value) })
-              }
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              className={`mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                errors.amount ? "border-red-500" : "border-white/20"
+              }`}
             />
+            {errors.amount && (
+              <p className="text-red-400 text-sm">{errors.amount}</p>
+            )}
 
+            {/* Date */}
             <label className="block text-sm font-medium mb-1">Date</label>
             <input
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className={`mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                errors.date ? "border-red-500" : "border-white/20"
+              }`}
             />
+            {errors.date && (
+              <p className="text-red-400 text-sm">{errors.date}</p>
+            )}
 
-            <label className="block text-sm font-medium mb-1">Description</label>
+            {/* Description */}
+            <label className="block text-sm font-medium mb-1">
+              Description
+            </label>
             <input
               type="text"
               placeholder="Description"
@@ -126,92 +297,49 @@ export default function ExpenseManager() {
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className={`mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                errors.description ? "border-red-500" : "border-white/20"
+              }`}
             />
+            {errors.description && (
+              <p className="text-red-400 text-sm">{errors.description}</p>
+            )}
 
+            {/* Employee */}
             <label className="block text-sm font-medium mb-1">Employee</label>
-            <input
-              type="text"
-              placeholder="Employee name"
+            <select
               value={form.employee}
               onChange={(e) =>
-                setForm({ ...form, employee: e.target.value })
+                setForm({
+                  ...form,
+                  employee: e.target.value,
+                  employeeName:
+                    users.find((u) => u._id === e.target.value)?.name || "",
+                })
               }
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20
-               placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
-
-            <button
-              onClick={addExpense}
-              className="mt-5 bg-green-500 text-white px-4 py-2 rounded w-full"
+              className={`mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                errors.employee ? "border-red-500" : "border-white/20"
+              }`}
             >
-              Save Expense
-            </button>
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-center">
-            Expenses List
-          </h2>
-          <div className="mb-4">
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 placeholder-gray-400 
-              focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            >
-              <option value="All" className="bg-gray-900">
-                All Categories
-              </option>
-              {categories.map((cat, i) => (
-                <option key={i} value={cat} className="bg-gray-900">
-                  {cat}
+              <option value="" className="bg-gray-900">Select Employee</option>
+              {users.map((user) => (
+                <option key={user._id} value={user._id} className="bg-gray-900">
+                  {user.name}
                 </option>
               ))}
             </select>
-          </div>
+            {errors.employee && (
+              <p className="text-red-400 text-sm">{errors.employee}</p>
+            )}
 
-          <ul className="space-y-2">
-            {expenses
-              .filter(
-                (exp) =>
-                  filterCategory === "All" || exp.category === filterCategory
-              )
-              .map((exp, i) => (
-                <li
-                  key={i}
-                  className="p-3 bg-white/10 rounded-xl flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-medium">{exp.category}</p>
-                    <p className="text-sm text-gray-300">{exp.description}</p>
-                    <p className="text-sm text-gray-400">{exp.employee}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">${exp.amount.toFixed(2)}</p>
-                    <p className="text-xs text-gray-400">{exp.date}</p>
-                  </div>
-                </li>
-              ))}
-          </ul>
-        </section>
-        <section>
-          <h2 className="text-xl font-semibold mb-3 text-center">Reports</h2>
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-            className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 placeholder-gray-400 
-            focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="monthly" className="bg-gray-900">
-              Monthly
-            </option>
-            <option value="yearly" className="bg-gray-900">
-              Yearly
-            </option>
-          </select>
+            <button
+              onClick={addExpense}
+              disabled={isAddingExpense}
+              className="mt-5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 rounded-lg w-full"
+            >
+              {isAddingExpense ? "Adding Expense..." : "Add Expense"}
+            </button>
+          </div>
         </section>
       </div>
     </main>
