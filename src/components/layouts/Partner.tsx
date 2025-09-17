@@ -18,6 +18,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [search, setSearch] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -173,8 +174,22 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
+  const filteredPartners = partners.filter((partner) =>
+    partner.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <main className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+    <div>
+      <div className="px-10 mt-5">
+        <input
+          type="text"
+          placeholder="Search partner by name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white w-full"
+        />
+      </div>
+    <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       <div className="flex justify-between items-center mb-6">
         <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
           Partners
@@ -182,15 +197,15 @@ export default function Home() {
         <div className="flex gap-4">
           {viewMode === "grid" ? (
             <button
-              onClick={() => setViewMode("list")}
+            onClick={() => setViewMode("list")}
               className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiList size={20} />
             </button>
           ) : (
             <button
-              onClick={() => setViewMode("grid")}
-              className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+            onClick={() => setViewMode("grid")}
+            className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
             >
               <FiGrid size={20} />
             </button>
@@ -206,19 +221,17 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {/* Loader */}
       {pageLoading ? (
         <p className="text-center text-gray-300">Loading partners...</p>
-      ) : partners.length === 0 ? (
+      ) : filteredPartners.length === 0 ? (
         <p className="text-center text-gray-400">No data found</p>
       ) : viewMode === "grid" ? (
         <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
-          {partners.map((partner) => (
+          {filteredPartners.map((partner) => (
             <div
               key={partner._id}
               className="relative bg-white/10 p-6 rounded-2xl shadow-lg border border-white/10"
-            >
+              >
               <button
                 onClick={() => openEditModal(partner)}
                 className="absolute top-6 right-3 text-gray-300 hover:text-white cursor-pointer"
@@ -238,9 +251,9 @@ export default function Home() {
         </div>
       ) : (
         <div className="space-y-4">
-          {partners.map((partner) => (
+          {filteredPartners.map((partner) => (
             <div
-              key={partner._id}
+            key={partner._id}
               className="flex justify-between items-center bg-white/10 p-4 pr-10 rounded-xl border border-white/10 relative"
             >
               <div>
@@ -265,8 +278,6 @@ export default function Home() {
           ))}
         </div>
       )}
-
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
@@ -333,7 +344,7 @@ export default function Home() {
                       errors.password ? "border-red-500" : "border-white/20"
                     }`}
                     placeholder="Partner Password"
-                  />
+                    />
                   {errors.password && (
                     <p className="text-red-400 text-sm">{errors.password}</p>
                   )}
@@ -364,7 +375,7 @@ export default function Home() {
               onClick={editingPartner ? handleUpdatePartner : handleAddPartner}
               disabled={loading}
               className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-            >
+              >
               {loading
                 ? editingPartner
                   ? "Saving Changes ..."
@@ -376,6 +387,7 @@ export default function Home() {
           </div>
         </div>
       )}
-    </main>
+    </div>
+                </div>
   );
 }

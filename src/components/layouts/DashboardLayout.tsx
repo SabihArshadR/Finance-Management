@@ -8,6 +8,7 @@ import {
   FiCreditCard,
   FiLogOut,
 } from "react-icons/fi";
+import { TbCategory } from "react-icons/tb";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -44,6 +45,7 @@ export default function DashboardLayout({
     { icon: <FiUsers />, label: "Employees", path: "/employee" },
     { icon: <FiDollarSign />, label: "Expenses", path: "/expense" },
     { icon: <FiCreditCard />, label: "Loans", path: "/loan" },
+    { icon: <TbCategory />, label: "Category", path: "/category" },
     { icon: <FiUsers />, label: "Partners", path: "/partner" },
   ];
 
@@ -86,10 +88,6 @@ export default function DashboardLayout({
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden ">
-        {/* <h2 className="text-xl font-semibold">
-            {navItems.find((item) => item.path === pathname)?.label ||
-              "Dashboard"}
-          </h2> */}
         <main className="h-full w-full">
           <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 h-full w-full overflow-auto">
             {children}
