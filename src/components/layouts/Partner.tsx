@@ -179,17 +179,19 @@ export default function Home() {
   );
 
   return (
-    <div>
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
       <div className="px-10 mt-5">
         <input
           type="text"
           placeholder="Search partner by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white w-full"
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full
+           bg-white/10 border border-white/20 text-white w-full"
         />
       </div>
-    <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+    <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br
+     from-gray-900 via-black to-gray-900 text-white">
       <div className="flex justify-between items-center mb-6">
         <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
           Partners
@@ -254,7 +256,8 @@ export default function Home() {
           {filteredPartners.map((partner) => (
             <div
             key={partner._id}
-              className="flex justify-between items-center bg-white/10 p-4 pr-10 rounded-xl border border-white/10 relative"
+              className="flex justify-between items-center bg-white/10 p-4 pr-10 
+              rounded-xl border border-white/10 relative"
             >
               <div>
                 <h2 className="text-lg font-semibold">{partner.name}</h2>

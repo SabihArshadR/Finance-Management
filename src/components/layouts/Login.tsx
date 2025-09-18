@@ -60,9 +60,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      <div className="w-full desktop:w-[450px] tablet:w-[450px] mobile:w-[300px] bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
-        <h2 className="text-3xl font-bold mb-8 text-center">Welcome Back</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br
+     from-gray-900 via-black to-gray-900">
+      <div className="w-full desktop:w-[450px] tablet:w-[450px] mobile:w-[300px] 
+      bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-lg text-white">
+        <h2 className="desktop:text-3xl tablet:text-3xl mobile:text-xl font-bold mb-8 text-center">Welcome Back</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
@@ -70,7 +72,8 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 
+              placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               placeholder="JohnDoe@example.com"
             />
             {emailError && (
@@ -84,7 +87,8 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-2 w-full px-4 py-3 pr-12 rounded-xl bg-white/10 border border-white/20 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                className="mt-2 w-full px-4 py-3 pr-12 rounded-xl bg-white/10 border border-white/20 
+                placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 placeholder="••••••••"
               />
               <button
@@ -102,7 +106,8 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-5 w-full bg-blue-600 hover:bg-blue-700 transition text-white font-semibold py-3 rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+            className="mt-5 w-full bg-blue-600 hover:bg-blue-700 transition text-white 
+            font-semibold py-3 rounded-xl shadow-md cursor-pointer disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

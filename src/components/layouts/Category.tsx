@@ -106,7 +106,9 @@ const Category = () => {
           placeholder="Search category by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 focus:border-blue-500 outline-none text-white w-full"
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 
+          rounded-full bg-white/10 border border-white/20 focus:border-blue-500 
+          outline-none text-white w-full"
         />
       </div>
     <div
@@ -156,7 +158,8 @@ const Category = () => {
       )}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+          <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 
+          rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
               onClick={() => setIsCategoryModalOpen(false)}
@@ -176,7 +179,8 @@ const Category = () => {
             <button
               onClick={addCategory}
               disabled={isAddingCategory}
-              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
+              disabled:opacity-50 cursor-pointer"
             >
               {isAddingCategory ? "Adding Category..." : "Add Category"}
             </button>
@@ -185,7 +189,8 @@ const Category = () => {
       )}
       {isDeleteModalOpen && selectedCategory && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white text-center">
+          <div className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl 
+          shadow-xl text-white text-center">
             <h2 className="text-xl font-semibold mb-4">
               Delete {selectedCategory.name}?
             </h2>

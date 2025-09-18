@@ -162,19 +162,20 @@ export default function ExpenseManager() {
   }, []);
 
   return (
-    <div>
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
       <div className="px-10 mt-5">
         <input
           type="text"
           placeholder="Search expense by name..."
           // value={search}
           // onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white w-full"
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 
+          border border-white/20 text-white w-full"
         />
       </div>
       <div className="min-h-screen p-10 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-semibold">Expenses</h1>
+          <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-2xl font-semibold">Expenses</h1>
           <button
             onClick={() => setShowExpenseModal(true)}
             className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
@@ -190,7 +191,7 @@ export default function ExpenseManager() {
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
-              <option value="" className="bg-gray-900">
+              <option value="" className="bg-gray-900 max-w-md">
                 Select Category
               </option>
               {categories.map((cat) => (
@@ -282,7 +283,8 @@ export default function ExpenseManager() {
         </div>
         {showExpenseModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-            <div className="w-full max-w-md bg-white/10 backdrop-blur-lg p-6 rounded-2xl shadow-xl text-white relative border border-white/20">
+            <div className="w-full max-w-md bg-white/10 backdrop-blur-lg p-6 rounded-2xl shadow-xl 
+            text-white relative border border-white/20">
               <button
                 className="absolute top-3 right-3 text-gray-400 hover:text-white cursor-pointer"
                 onClick={() => setShowExpenseModal(false)}
@@ -403,7 +405,9 @@ export default function ExpenseManager() {
                 <button
                   onClick={addExpense}
                   disabled={isAddingExpense}
-                  className="mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 rounded-lg w-full"
+                  className="mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 
+                  disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 
+                  rounded-lg w-full"
                 >
                   {isAddingExpense ? "Adding Expense..." : "Add Expense"}
                 </button>

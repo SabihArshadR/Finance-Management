@@ -225,14 +225,15 @@ export default function Home() {
   );
 
   return (
-    <div>
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
       <div className="px-10 mt-5">
         <input
           type="text"
           placeholder="Search employee by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white w-full"
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 
+          border border-white/20 text-white w-full"
         />
       </div>
       <div
@@ -281,7 +282,7 @@ export default function Home() {
             {filteredEmployees.map((emp) => (
               <div
                 key={emp._id}
-                className="bg-white/10 p-6 rounded-2xl shadow-lg border border-white/10 relative"
+                className="bg-white/10 border-white/10 p-6 rounded-2xl shadow-lg border  relative"
               >
                 <button
                   onClick={() => openEditModal(emp)}
@@ -305,7 +306,8 @@ export default function Home() {
             {filteredEmployees.map((emp) => (
               <div
                 key={emp._id}
-                className="flex justify-between items-center bg-white/10 p-4 pr-10 rounded-xl border border-white/10 relative"
+                className="flex justify-between items-center bg-white/10 p-4 pr-10 rounded-xl 
+                border border-white/10 relative"
               >
                 <button
                   onClick={() => openEditModal(emp)}
@@ -331,7 +333,8 @@ export default function Home() {
         )}
         {isModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+            <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 
+            rounded-2xl shadow-xl text-white relative">
               <button
                 className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
                 onClick={() => {

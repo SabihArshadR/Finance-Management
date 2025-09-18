@@ -159,14 +159,15 @@ export default function LoanPage() {
 });
 
   return (
-    <div>
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
       <div className="px-10 mt-5">
         <input
           type="text"
           placeholder="Search loan by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white w-full"
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full 
+          bg-white/10 border border-white/20 text-white w-full"
         />
       </div>
     <div
@@ -195,7 +196,8 @@ export default function LoanPage() {
           {filteredLoans.map((loan) => (
             <div
               key={loan._id}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-lg"
+              className="bg-white/10 backdrop-blur-lg border border-white/20 p-6 
+              rounded-2xl shadow-lg"
               >
               <h2 className="text-xl font-semibold mb-2">{loan.lender}</h2>
               <p className="text-sm text-gray-300 mb-1">
@@ -231,7 +233,8 @@ export default function LoanPage() {
       )}
       {isLoanModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
-          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 
+          rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
               onClick={() => setIsLoanModalOpen(false)}
@@ -352,7 +355,8 @@ export default function LoanPage() {
               <button
                 onClick={addLoan}
                 disabled={isSubmitting}
-                className="w-full mt-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 cursor-pointer px-4 py-2 rounded-lg"
+                className="w-full mt-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 
+                cursor-pointer px-4 py-2 rounded-lg"
                 >
                 {isSubmitting ? "Adding Loan..." : "Add Loan"}
               </button>

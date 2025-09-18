@@ -1,16 +1,33 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import LineCharts from "../ui/LineChart";
-import PieCharts from "../ui/PieChart";
 import axios from "axios";
 import Image from "next/image";
 import image from "@/assets/welcome-back-3.png";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
 
-const Dashdboard = () => {
+const Dashboard = () => {
   const [balanceData, setBalanceData] = useState<{
     availableBalance: number;
     totalCapital: number;
   } | null>(null);
+
+  const [usersCount, setUsersCount] = useState(0);
+  const [partnersCount, setPartnersCount] = useState(0);
+  const [employeesCount, setEmployeesCount] = useState(0);
 
   const apiUrl = "https://finance-backend-phi.vercel.app";
 
@@ -21,9 +38,9 @@ const Dashdboard = () => {
       const response = await axios.get(`${apiUrl}/api/partner-report`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = response.data;
+      setPartnersCount(response.data.data.partners.length);
     } catch (error: any) {
-      console.error("Error adding category:", error.response?.data || error);
+      console.error("Error fetching partners:", error.response?.data || error);
     }
   };
 
@@ -34,9 +51,9 @@ const Dashdboard = () => {
       const response = await axios.get(`${apiUrl}/api/employee-report`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = response.data;
+      setEmployeesCount(response.data.data.length);
     } catch (error: any) {
-      console.error("Error adding category:", error.response?.data || error);
+      console.error("Error fetching employees:", error.response?.data || error);
     }
   };
 
@@ -49,16 +66,40 @@ const Dashdboard = () => {
       });
       const data = response.data.data;
       setBalanceData({
-        availableBalance: data.availableBalance,
+        availableBalance: data.liabilities,
         totalCapital: data.totalCapital,
       });
-
-      console.log("Balance Sheet:", data);
     } catch (error: any) {
       console.error(
-        "EError fetching balance sheet:",
+        "Error fetching balance sheet:",
         error.response?.data || error
       );
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await axios.get(`${apiUrl}/api/auth/list`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsersCount(response.data.data.length);
+    } catch (error: any) {
+      console.error("Error fetching users:", error.response?.data || error);
+    }
+  };
+
+  const fetchLoan = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await axios.get(`${apiUrl}/api/loan-report`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log(response.data.data);
+    } catch (error: any) {
+      console.error("Error fetching users:", error.response?.data || error);
     }
   };
 
@@ -66,63 +107,231 @@ const Dashdboard = () => {
     fetchPartnerReport();
     fetchEmployeeReport();
     fetchBalanceSheet();
+    fetchUsers();
+    fetchLoan();
   }, []);
 
+  const total = usersCount + partnersCount + employeesCount;
+
+  const pieData = [
+    { name: "Users", value: usersCount },
+    { name: "Employees", value: employeesCount },
+    { name: "Partners", value: partnersCount },
+  ];
+
+  const COLORS = ["#3B82F6", "#EC4899", "#22C55E"];
+
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const currentMonth = new Date().getMonth();
+
+  const barData = months.map((month, index) => ({
+    name: month,
+    balance:
+      index === currentMonth
+        ? balanceData?.availableBalance || 0
+        : Math.floor(Math.random() * 3000),
+  }));
+
   return (
-    <div>
-      <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold text-white ml-5 mt-5">
+    <div className="desktop:px-10 tablet:px-10 mobile:px-2 w-full desktop:mt-10 tablet:mt-10 mobile:mt-5 
+    desktop:mb-0 tablet:mb-0 mobile:mb-20">
+      <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-xl font-semibold text-white ">
+
         Dashboard
       </h1>
-      <div>
-        <div className="bg-[#0A102B] rounded-lg p-6 flex justify-between items-center text-white shadow-lg mt-5 mx-5 max-w-[1000px]">
-          <div className="flex items-center space-x-4">
-            <div>
-              <p className="text-gray-300 text-sm">Welcome back</p>
-              <h2 className="text-xl font-bold">Admin!</h2>
-              <div className="flex space-x-6 mt-3">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {balanceData
-                      ? `$${(balanceData.availableBalance / 1000).toFixed(1)}K`
-                      : "--"}
-                  </h3>
-                  <p className="text-gray-400 text-xs">Available Balance</p>
-                </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {balanceData
-                      ? `$${(balanceData.totalCapital / 1000).toFixed(1)}K`
-                      : "--"}
-                  </h3>
-                  <p className="text-gray-400 text-xs">Total Capital</p>
-                </div>
+      <div className="desktop:flex tablet:grid tablet:grid-cols-1 mobile:grid mobile:grid-cols-1 
+      gap-5 mt-5">
+        <div className="bg-white/10 border-white/10 rounded-lg p-6 flex justify-between 
+        items-center text-white shadow-lg w-full">
+          <div>
+            <p className="text-gray-300 text-sm">Welcome back</p>
+            <h2 className="text-xl font-bold">Admin!</h2>
+            <div className="flex space-x-6 mt-3">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  {balanceData
+                    ? `$${(balanceData.availableBalance / 1000).toFixed(1)}K`
+                    : "--"}
+                </h3>
+                <p className="text-gray-400 text-xs">Available Balance</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">
+                  {balanceData
+                    ? `$${(balanceData.totalCapital / 1000).toFixed(1)}K`
+                    : "--"}
+                </h3>
+                <p className="text-gray-400 text-xs">Total Capital</p>
               </div>
             </div>
           </div>
-          <div className="">
-            <Image src={image} alt="illustration" width={250} height={150} />
+          <Image
+            src={image}
+            alt="illustration"
+            width={250}
+            height={150}
+            className="desktop:w-[250px] desktop:h-[150px] tablet:w-[250px] tablet:h-[150px] 
+            mobile:w-[80px] mobile:h-[80px] object-cover"
+          />
+        </div>
+
+        <div className="bg-white/10 border-white/10 rounded-lg p-6 text-white shadow-lg 
+        desktop:max-w-[500px] w-full">
+          <h2 className="text-lg font-semibold mb-10 text-center">
+            Members Distribution
+          </h2>
+          <div className="relative w-full h-64">
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={100}
+                  dataKey="value"
+                  paddingAngle={1}
+                >
+                  {pieData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <h2 className="text-2xl font-bold">{total}</h2>
+              <p className="text-gray-400 text-sm">Total Members</p>
+            </div>
           </div>
         </div>
       </div>
-      {/* <div className="desktop:grid desktop:grid-cols-2 tablet:grid-cols-1 mobile:grid-cols-1 p-5 justify-between gap-10">
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl desktop:overflow-hidden tablet:overflow-auto mobile:overflow-auto">
-          <LineCharts />
+
+      <div className="desktop:flex tablet:grid tablet:grid-cols-1 mobile:grid mobile:grid-cols-1 desktop:gap-5">
+        <div className="bg-white/10 border-white/10 rounded-lg p-6 mt-6 text-white shadow-lg w-full">
+          <h2 className="text-lg font-semibold mb-4 text-center">
+            Monthly Revenue
+          </h2>
+
+          <div className="flex justify-center space-x-3 mb-4">
+            {["1D", "2D", "5D", "1W" , "1M", "1Y", "ALL"].map((range) => (
+              <button
+                key={range}
+                className="px-3 py-1 rounded-lg text-sm font-medium bg-gray-700 text-gray-300
+                 hover:bg-blue-500 hover:text-white transition"
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={barData}>
+              <CartesianGrid
+                stroke="#374151"
+                vertical={false}
+                horizontal={true}
+              />
+              <XAxis
+                dataKey="name"
+                stroke="#9CA3AF"
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Bar
+                dataKey="balance"
+                fill="url(#colorUv)"
+                radius={[6, 6, 0, 0]}
+              />
+              <defs>
+                <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />
+                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.9} />
+                </linearGradient>
+              </defs>
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-gray-400 text-sm mt-3">
+            Available balance for this month compared to previous months
+          </p>
+          <h3 className="text-2xl font-bold mt-2">
+            {balanceData
+              ? `$${Math.round(balanceData.availableBalance)} K`
+              : "--"}
+          </h3>
         </div>
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl flex justify-center items-center w-full">
-          <PieCharts />
+
+        <div className="bg-white/10 border-white/10 rounded-lg p-6 mt-6 text-white shadow-lg w-full">
+          <h2 className="text-lg font-semibold mb-4 text-center">
+            Loan Revenue
+          </h2>
+
+          <div className="flex justify-center space-x-3 mb-4">
+            {["1D", "2D", "5D", "1W" , "1M", "1Y", "ALL"].map((range) => (
+              <button
+                key={range}
+                className="px-3 py-1 rounded-lg text-sm font-medium bg-gray-700 text-gray-300
+                 hover:bg-blue-500 hover:text-white transition"
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={barData}>
+              <CartesianGrid
+                stroke="#374151"
+                vertical={false}
+                horizontal={true}
+              />
+              <XAxis
+                dataKey="name"
+                stroke="#9CA3AF"
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="balance"
+                stroke="#3B82F6"
+                strokeWidth={3}
+                dot={{ r: 5, fill: "#06B6D4" }}
+                activeDot={{ r: 7, fill: "#22C55E" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-gray-400 text-sm mt-3">
+            Available balance for this month compared to previous months
+          </p>
+          <h3 className="text-2xl font-bold mt-2">
+            {balanceData
+              ? `$${Math.round(balanceData.availableBalance)} K`
+              : "--"}
+          </h3>
         </div>
       </div>
-      <div className="grid desktop:grid-cols-2 tablet:grid-cols-1 mobile:grid-cols-1 p-5 justify-between gap-10">
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl flex justify-center items-center w-full">
-          <PieCharts />
-        </div>
-        <div className="mt-10 border bg-[#0A102B] rounded-2xl desktop:overflow-hidden tablet:overflow-auto mobile:overflow-auto">
-          <LineCharts />
-        </div>
-      </div> */}
     </div>
   );
 };
 
-export default Dashdboard;
+export default Dashboard;
