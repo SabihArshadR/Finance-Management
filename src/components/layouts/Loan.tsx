@@ -24,7 +24,8 @@ type Loan = {
 
 export default function LoanPage() {
   // const apiUrl = "https://finance-backend-phi.vercel.app";
-  const apiUrl = "http://localhost:3000";
+  // const apiUrl = "http://localhost:3000";
+  const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const [users, setUsers] = useState<User[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);

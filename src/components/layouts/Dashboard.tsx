@@ -30,7 +30,8 @@ const Dashboard = () => {
   const [employeesCount, setEmployeesCount] = useState(0);
 
   // const apiUrl = "https://finance-backend-phi.vercel.app";
-  const apiUrl = "http://localhost:3000";
+  // const apiUrl = "http://localhost:3000";
+  const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const fetchPartnerReport = async () => {
     try {

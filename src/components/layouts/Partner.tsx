@@ -32,7 +32,8 @@ export default function Home() {
   const [pageLoading, setPageLoading] = useState(true);
 
   // const apiUrl = "https://finance-backend-phi.vercel.app";
-  const apiUrl = "http://localhost:3000";
+  // const apiUrl = "http://localhost:3000";
+  const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

@@ -12,7 +12,9 @@ type CategoryType = {
 
 const Category = () => {
   // const apiUrl = "https://finance-backend-phi.vercel.app";
-  const apiUrl = "http://localhost:3000";
+  // const apiUrl = "http://localhost:3000";
+  const apiUrl = "https://finance-management-backend-eight.vercel.app";
+
   const [categories, setCategories] = useState<CategoryType[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCategory, setNewCategory] = useState("");
