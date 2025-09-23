@@ -38,7 +38,8 @@ export default function Home() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const apiUrl = "https://finance-backend-phi.vercel.app";
+  // const apiUrl = "https://finance-backend-phi.vercel.app";
+  const apiUrl = "http://localhost:3000";
 
   const fetchEmployees = async () => {
     try {

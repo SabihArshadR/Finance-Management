@@ -29,7 +29,8 @@ const Dashboard = () => {
   const [partnersCount, setPartnersCount] = useState(0);
   const [employeesCount, setEmployeesCount] = useState(0);
 
-  const apiUrl = "https://finance-backend-phi.vercel.app";
+  // const apiUrl = "https://finance-backend-phi.vercel.app";
+  const apiUrl = "http://localhost:3000";
 
   const fetchPartnerReport = async () => {
     try {
@@ -65,8 +66,9 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = response.data.data;
+      console.log(response)
       setBalanceData({
-        availableBalance: data.liabilities,
+        availableBalance: data.availableBalance,
         totalCapital: data.totalCapital,
       });
     } catch (error: any) {
@@ -97,7 +99,7 @@ const Dashboard = () => {
       const response = await axios.get(`${apiUrl}/api/loan-report`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(response.data.data);
+      console.log(response.data.data , "loan report");
     } catch (error: any) {
       console.error("Error fetching users:", error.response?.data || error);
     }
@@ -254,7 +256,7 @@ const Dashboard = () => {
                 tickLine={false}
               />
               <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
-              <Tooltip />
+              {/* <Tooltip /> */}
               <Bar
                 dataKey="balance"
                 fill="url(#colorUv)"
@@ -269,7 +271,7 @@ const Dashboard = () => {
             </BarChart>
           </ResponsiveContainer>
           <p className="text-gray-400 text-sm mt-3">
-            Available balance for this month compared to previous months
+            Available Balance
           </p>
           <h3 className="text-2xl font-bold mt-2">
             {balanceData
@@ -309,7 +311,7 @@ const Dashboard = () => {
                 tickLine={false}
               />
               <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
-              <Tooltip />
+              {/* <Tooltip /> */}
               <Line
                 type="monotone"
                 dataKey="balance"
@@ -321,11 +323,11 @@ const Dashboard = () => {
             </LineChart>
           </ResponsiveContainer>
           <p className="text-gray-400 text-sm mt-3">
-            Available balance for this month compared to previous months
+            Available Capital
           </p>
           <h3 className="text-2xl font-bold mt-2">
             {balanceData
-              ? `$${Math.round(balanceData.availableBalance)} K`
+              ? `$${Math.round(balanceData.totalCapital)} K`
               : "--"}
           </h3>
         </div>

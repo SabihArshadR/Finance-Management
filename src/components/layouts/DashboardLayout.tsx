@@ -47,7 +47,7 @@ export default function DashboardLayout({
   const navItems = [
     { icon: <FiHome />, label: "Dashboard", path: "/dashboard" },
     { icon: <FiUsers />, label: "Employees", path: "/employee" },
-    { icon: <FiDollarSign />, label: "Expenses", path: "/expense" },
+    { icon: <FiDollarSign />, label: "Transactions", path: "/expense" },
     { icon: <FiCreditCard />, label: "Loans", path: "/loan" },
     { icon: <TbCategory />, label: "Category", path: "/category" },
     { icon: <FiUsers />, label: "Partners", path: "/partner" },

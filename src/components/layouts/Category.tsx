@@ -11,7 +11,8 @@ type CategoryType = {
 };
 
 const Category = () => {
-  const apiUrl = "https://finance-backend-phi.vercel.app";
+  // const apiUrl = "https://finance-backend-phi.vercel.app";
+  const apiUrl = "http://localhost:3000";
   const [categories, setCategories] = useState<CategoryType[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCategory, setNewCategory] = useState("");
@@ -22,6 +23,7 @@ const Category = () => {
     null
   );
   const [search, setSearch] = useState("");
+  const [categoryFlow, setCategoryFlow] = useState<"in" | "out">("in");
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -51,12 +53,13 @@ const Category = () => {
 
       await axios.post(
         `${apiUrl}/api/add-category`,
-        { name: newCategory },
+        { name: newCategory, flow: categoryFlow },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       SuccessToast("Category added successfully");
       setNewCategory("");
+      setCategoryFlow("in");
       setIsCategoryModalOpen(false);
       await fetchCategories();
     } catch (err: any) {
@@ -111,114 +114,136 @@ const Category = () => {
           outline-none text-white w-full"
         />
       </div>
-    <div
-      className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 
+      <div
+        className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 
       bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white"
       >
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
-          Categories
-        </h1>
-        <div className="flex gap-4">
-          <button
-            onClick={() => setIsCategoryModalOpen(true)}
-            className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
-          >
-            + Add Category
-          </button>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
+            Categories
+          </h1>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setIsCategoryModalOpen(true)}
+              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+            >
+              + Add Category
+            </button>
+          </div>
         </div>
-      </div>
-      {loading ? (
-        <p className="text-center text-gray-400">Loading categories...</p>
-      ) : filteredCategories.length === 0 ? (
-        <p className="text-center text-gray-400">No categories found.</p>
-      ) : (
-        <div className="grid desktop:grid-cols-3 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
-          {filteredCategories.map((cat) => (
+        {loading ? (
+          <p className="text-center text-gray-400">Loading categories...</p>
+        ) : filteredCategories.length === 0 ? (
+          <p className="text-center text-gray-400">No categories found.</p>
+        ) : (
+          <div className="grid desktop:grid-cols-3 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
+            {filteredCategories.map((cat) => (
+              <div
+                key={cat._id}
+                className="bg-white/10 p-6 rounded-2xl shadow-lg border border-white/10 relative"
+              >
+                <button
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  className="absolute top-3 right-3 text-red-400 hover:text-red-600 cursor-pointer"
+                >
+                  <FiTrash2 size={18} />
+                </button>
+                <h3 className="text-lg font-semibold">{cat.name}</h3>
+                <p className="text-gray-400 text-sm">
+                  Created: {new Date(cat.createdAt).toLocaleDateString("en-GB")}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {isCategoryModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
             <div
-            key={cat._id}
-            className="bg-white/10 p-6 rounded-2xl shadow-lg border border-white/10 relative"
+              className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 
+          rounded-2xl shadow-xl text-white relative"
             >
               <button
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setIsDeleteModalOpen(true);
-                }}
-                className="absolute top-3 right-3 text-red-400 hover:text-red-600 cursor-pointer"
+                className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+                onClick={() => setIsCategoryModalOpen(false)}
               >
-                <FiTrash2 size={18} />
+                ✕
               </button>
-              <h3 className="text-lg font-semibold">{cat.name}</h3>
-              <p className="text-gray-400 text-sm">
-                Created: {new Date(cat.createdAt).toLocaleDateString("en-GB")}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 
-          rounded-2xl shadow-xl text-white relative">
-            <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
-              onClick={() => setIsCategoryModalOpen(false)}
-              >
-              ✕
-            </button>
-            <h2 className="text-2xl font-semibold mb-4 text-center">
-              Add Category
-            </h2>
-            <input
-              type="text"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="Category Name"
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              <h2 className="text-2xl font-semibold mb-4 text-center">
+                Add Category
+              </h2>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Category Name"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
               />
-            <button
-              onClick={addCategory}
-              disabled={isAddingCategory}
-              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
+              <label className="block text-sm font-medium mt-4 mb-1">
+                Flow
+              </label>
+              <select
+                value={categoryFlow}
+                onChange={(e) =>
+                  setCategoryFlow(e.target.value as "in" | "out")
+                }
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
+              >
+                <option className="bg-gray-900" value="in">
+                  In
+                </option>
+                <option className="bg-gray-900" value="out">
+                  Out
+                </option>
+              </select>
+              <button
+                onClick={addCategory}
+                disabled={isAddingCategory}
+                className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
               disabled:opacity-50 cursor-pointer"
-            >
-              {isAddingCategory ? "Adding Category..." : "Add Category"}
-            </button>
-          </div>
-        </div>
-      )}
-      {isDeleteModalOpen && selectedCategory && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl 
-          shadow-xl text-white text-center">
-            <h2 className="text-xl font-semibold mb-4">
-              Delete {selectedCategory.name}?
-            </h2>
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to delete this category?
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={deleteCategory}
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg cursor-pointer"
-                >
-                Yes, Delete
-              </button>
-              <button
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setSelectedCategory(null);
-                }}
-                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg cursor-pointer"
-                >
-                Cancel
+              >
+                {isAddingCategory ? "Adding Category..." : "Add Category"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        {isDeleteModalOpen && selectedCategory && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div
+              className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl 
+          shadow-xl text-white text-center"
+            >
+              <h2 className="text-xl font-semibold mb-4">
+                Delete {selectedCategory.name}?
+              </h2>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete this category?
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={deleteCategory}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg cursor-pointer"
+                >
+                  Yes, Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setSelectedCategory(null);
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-                </div>
   );
 };
 
