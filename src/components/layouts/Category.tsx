@@ -1,10 +1,22 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FiLogOut, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import {
+  FiCreditCard,
+  FiDollarSign,
+  FiGrid,
+  FiLogOut,
+  FiSearch,
+  FiTrash2,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
 import { IoFilter } from "react-icons/io5";
 import { SuccessToast, ErrorToast } from "../ui/Toast";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { TbCategory } from "react-icons/tb";
+import Hamburger from "../ui/Hamburger";
+import MobileSidebar from "../ui/MobileSidebar";
 
 type CategoryType = {
   _id: string;
@@ -152,19 +164,47 @@ const Category = () => {
     router.push("/");
   };
 
+  const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const navItems = [
+    { icon: <FiGrid />, label: "Dashboard", path: "/dashboard" },
+    { icon: <FiUsers />, label: "Employees", path: "/employee" },
+    { icon: <FiDollarSign />, label: "Transactions", path: "/expense" },
+    { icon: <FiCreditCard />, label: "Loans", path: "/loan" },
+    { icon: <TbCategory />, label: "Category", path: "/category" },
+    { icon: <FiUsers />, label: "Partners", path: "/partner" },
+  ];
+
   return (
     <div>
-      <div className="text-white bg-gray-900 px-10 py-3 desktop:block tablet:block mobile:hidden">
+      <div className="text-white bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-3 fixed top-0 left-0 right-0 z-50">
         <div className="flex justify-between items-center">
+          <div className="desktop:hidden tablet:hidden text-white">
+            <Hamburger
+              isOpen={isMobileOpen}
+              onToggle={() => setIsMobileOpen(!isMobileOpen)}
+            />
+            <MobileSidebar
+              isOpen={isMobileOpen}
+              navItems={navItems}
+              pathname={pathname}
+              onClose={() => setIsMobileOpen(false)}
+              onNavigate={(path) => router.push(path)}
+            />
+          </div>
           <h1 className="desktop:text-2xl tablet:text-3xl mobile:text-lg font-semibold">
             Categories
           </h1>
           <div className="flex gap-3">
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+              className="bg-green-600 desktop:px-4 desktop:py-2 tablet:px-4 tablet:py-2 mobile:px-2 mobile:py-2 rounded-lg hover:bg-green-700 cursor-pointer flex"
             >
-              + Add Category
+              + Add{" "}
+              <span className="desktop:block tablet:block mobile:hidden">
+                Category
+              </span>
             </button>
             <div
               onClick={() => {
@@ -178,7 +218,7 @@ const Category = () => {
         </div>
       </div>
 
-      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative">
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative pt-[60px]">
         <input
           type="text"
           placeholder="Search category by name ..."
@@ -258,23 +298,40 @@ const Category = () => {
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
               />
 
-              <div className="flex gap-4">
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, startDate: e.target.value })
-                  }
-                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
-                />
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, endDate: e.target.value })
-                  }
-                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
-                />
+              <div className="flex desktop:gap-4 mobile:gap-10 desktop:mr-0 mobile:mr-5">
+                {/* Start Date */}
+                <div className="relative w-1/2">
+                  {!filters.startDate && (
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none mobile:block desktop:hidden">
+                      Enter start date
+                    </span>
+                  )}
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                      setFilters({ ...filters, startDate: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
+                  />
+                </div>
+
+                {/* End Date */}
+                <div className="relative w-1/2">
+                  {!filters.endDate && (
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none mobile:block desktop:hidden">
+                      Enter end date
+                    </span>
+                  )}
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                      setFilters({ ...filters, endDate: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
+                  />
+                </div>
               </div>
             </div>
 

@@ -17,8 +17,17 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { FiLogOut } from "react-icons/fi";
-import { useRouter } from "next/navigation";
+import {
+  FiCreditCard,
+  FiDollarSign,
+  FiGrid,
+  FiLogOut,
+  FiUsers,
+} from "react-icons/fi";
+import { usePathname, useRouter } from "next/navigation";
+import Hamburger from "../ui/Hamburger";
+import MobileSidebar from "../ui/MobileSidebar";
+import { TbCategory } from "react-icons/tb";
 
 const Dashboard = () => {
   const [balanceData, setBalanceData] = useState<{
@@ -29,8 +38,8 @@ const Dashboard = () => {
   const [usersCount, setUsersCount] = useState(0);
   const [partnersCount, setPartnersCount] = useState(0);
   const [employeesCount, setEmployeesCount] = useState(0);
-  const [barRange, setBarRange] = useState("ALL");
-  const [lineRange, setLineRange] = useState("ALL");
+  const [barRange, setBarRange] = useState("1Y");
+  const [lineRange, setLineRange] = useState("1Y");
 
   const router = useRouter();
   const apiUrl = "https://finance-management-backend-eight.vercel.app";
@@ -132,37 +141,92 @@ const Dashboard = () => {
     "Nov",
     "Dec",
   ];
-  const currentMonth = new Date().getMonth();
+  
+  const getTotalFromData = (data: any[]) => {
+    return data.reduce((sum, d) => sum + d.balance, 0);
+  };
 
   const getChartData = (isCapital: boolean, range: string) => {
     if (!balanceData) return [];
 
-    return months.map((month, index) => {
-      if (range === "ALL") {
+    const today = new Date();
+
+    if (range === "1D") {
+      return [
+        {
+          name: today.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+          }),
+          balance: isCapital
+            ? balanceData.totalCapital
+            : balanceData.availableBalance,
+        },
+      ];
+    }
+
+    if (range === "2D" || range === "5D") {
+      const days = parseInt(range.replace("D", ""));
+      return Array.from({ length: days }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (days - 1 - i));
         return {
-          name: month,
-          balance:
-            index === currentMonth
-              ? isCapital
-                ? balanceData.totalCapital
-                : balanceData.availableBalance
-              : Math.floor(Math.random() * 3000),
-        };
-      } else {
-        return {
-          name: month,
+          name: d.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+          }),
           balance: Math.floor(Math.random() * 3000),
         };
-      }
-    });
+      });
+    }
+
+    if (range === "1W") {
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (6 - i));
+        return {
+          name: d.toLocaleDateString("en-US", { weekday: "short" }),
+          balance: Math.floor(Math.random() * 3000),
+        };
+      });
+    }
+
+    if (range === "1M") {
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      return Array.from({ length: daysInMonth }, (_, i) => ({
+        name: `${i + 1}`,
+        balance: Math.floor(Math.random() * 3000),
+      }));
+    }
+
+    if (range === "1Y") {
+      return months.map((m, i) => ({
+        name: m,
+        balance:
+          i === today.getMonth()
+            ? isCapital
+              ? balanceData.totalCapital
+              : balanceData.availableBalance
+            : Math.floor(Math.random() * 3000),
+      }));
+    }
+
+    return months.map((m, i) => ({
+      name: m,
+      balance: Math.floor(Math.random() * 3000),
+    }));
   };
 
   const barData = getChartData(true, barRange);
   const lineData = getChartData(false, lineRange);
 
-  const total = usersCount + partnersCount + employeesCount;
+  const barTotal = getTotalFromData(barData);
+  const lineTotal = getTotalFromData(lineData);
+
+  const total = partnersCount + employeesCount;
   const pieData = [
-    { name: "Users", value: usersCount },
     { name: "Employees", value: employeesCount },
     { name: "Partners", value: partnersCount },
   ];
@@ -173,9 +237,34 @@ const Dashboard = () => {
     router.push("/");
   };
 
+  const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const navItems = [
+    { icon: <FiGrid />, label: "Dashboard", path: "/dashboard" },
+    { icon: <FiUsers />, label: "Employees", path: "/employee" },
+    { icon: <FiDollarSign />, label: "Transactions", path: "/expense" },
+    { icon: <FiCreditCard />, label: "Loans", path: "/loan" },
+    { icon: <TbCategory />, label: "Category", path: "/category" },
+    { icon: <FiUsers />, label: "Partners", path: "/partner" },
+  ];
+
   return (
     <div>
-      <div className="bg-gray-900 px-10 py-4 flex justify-between desktop:flex tablet:flex mobile:hidden">
+      <div className="bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-4 flex justify-between fixed top-0 left-0 right-0 z-50">
+        <div className="desktop:hidden tablet:hidden text-white">
+          <Hamburger
+            isOpen={isMobileOpen}
+            onToggle={() => setIsMobileOpen(!isMobileOpen)}
+          />
+          <MobileSidebar
+            isOpen={isMobileOpen}
+            navItems={navItems}
+            pathname={pathname}
+            onClose={() => setIsMobileOpen(false)}
+            onNavigate={(path) => router.push(path)}
+          />
+        </div>
         <h1 className="desktop:text-2xl tablet:text-3xl mobile:text-xl font-semibold text-white ">
           Dashboard
         </h1>
@@ -187,7 +276,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="desktop:px-10 tablet:px-10 mobile:px-2 w-full desktop:mt-10 tablet:mt-10 mobile:mt-5 desktop:mb-10 tablet:mb-0 mobile:mb-20">
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 w-full desktop:mt-10 tablet:mt-10 mobile:mt-5 desktop:mb-10 tablet:mb-0 mobile:mb-20 pt-[40px]">
         <div className="desktop:flex tablet:grid tablet:grid-cols-1 mobile:grid mobile:grid-cols-1 gap-5 mt-5">
           <div className="bg-white/10 border-white/10 rounded-lg p-6 flex justify-between items-center text-white shadow-lg w-full">
             <div>
@@ -297,10 +386,13 @@ const Dashboard = () => {
               </BarChart>
             </ResponsiveContainer>
             <p className="text-gray-400 text-sm mt-3">Available Balance</p>
-            <h3 className="text-2xl font-bold mt-2">
+            {/* <h3 className="text-2xl font-bold mt-2">
               {balanceData
                 ? `$${Math.round(balanceData.totalCapital)} K`
                 : "--"}
+            </h3> */}
+            <h3 className="text-2xl font-bold mt-2">
+              {barData.length > 0 ? `$${Math.round(barTotal)} K` : "--"}
             </h3>
           </div>
 
@@ -346,10 +438,13 @@ const Dashboard = () => {
               </LineChart>
             </ResponsiveContainer>
             <p className="text-gray-400 text-sm mt-3">Available Capital</p>
-            <h3 className="text-2xl font-bold mt-2">
+            {/* <h3 className="text-2xl font-bold mt-2">
               {balanceData
                 ? `$${Math.round(balanceData.availableBalance)} K`
                 : "--"}
+            </h3> */}
+            <h3 className="text-2xl font-bold mt-2">
+              {lineData.length > 0 ? `$${Math.round(lineTotal)} K` : "--"}
             </h3>
           </div>
         </div>
