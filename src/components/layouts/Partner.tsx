@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
 import axios from "axios";
-import { FiGrid, FiList, FiEdit2 } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiGrid, FiList, FiEdit2, FiSearch, FiLogOut } from "react-icons/fi";
+import { IoFilter } from "react-icons/io5";
 import { ErrorToast, SuccessToast } from "../ui/Toast";
+import { useRouter } from "next/navigation";
 
 type Partner = {
   _id: string;
@@ -13,150 +15,53 @@ type Partner = {
   joinDate: string;
 };
 
-export default function Home() {
+export default function PartnersPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
-  const [search, setSearch] = useState("");
+  const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [searchName, setSearchName] = useState("");
+  const router = useRouter();
+
+  const [filters, setFilters] = useState({
+    name: "",
+    minSalary: "",
+    maxSalary: "",
+    startDate: "",
+    endDate: "",
+  });
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     percentage: "",
+    salary: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
-
-  // const apiUrl = "https://finance-backend-phi.vercel.app";
-  // const apiUrl = "http://localhost:3000";
   const apiUrl = "https://finance-management-backend-eight.vercel.app";
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (name === "percentage" && !/^\d*$/.test(value)) return;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!form.name) newErrors.name = "Please enter name";
-    if (!editingPartner && !form.email) newErrors.email = "Please enter email";
-    if (!editingPartner && !form.password)
-      newErrors.password = "Please enter password";
-    if (!form.percentage) newErrors.percentage = "Please enter investment %";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const resetForm = () => {
-    setForm({ name: "", email: "", password: "", percentage: "" });
-    setErrors({});
-    setEditingPartner(null);
-  };
-
-  const handleAddPartner = async () => {
-    if (!validateForm()) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      ErrorToast("No token found. Please login first.");
-      return;
-    }
-
-    const payload = {
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      percentage: Number(form.percentage),
-      role: "partner",
-    };
-
-    try {
-      setLoading(true);
-      await axios.post(`${apiUrl}/api/auth/add-user`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      resetForm();
-      setIsModalOpen(false);
-      fetchPartners();
-      SuccessToast("Partner added successfully!");
-    } catch (error: any) {
-      console.error("Error adding partner:", error.response?.data || error);
-      ErrorToast("Failed to add partner. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdatePartner = async () => {
-    if (!validateForm()) return;
-    if (!editingPartner) return;
-
-    const noChanges =
-      form.name === editingPartner.name &&
-      form.email === editingPartner.email &&
-      Number(form.percentage) === editingPartner.percentage;
-
-    if (noChanges) {
-      ErrorToast("Please make some changes before updating.");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      ErrorToast("No token found. Please login first.");
-      return;
-    }
-
-    const payload = {
-      name: form.name,
-      email: form.email,
-      percentage: Number(form.percentage),
-    };
-
-    try {
-      setLoading(true);
-      await axios.put(
-        `${apiUrl}/api/auth/update/${editingPartner._id}`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      resetForm();
-      setIsModalOpen(false);
-      fetchPartners();
-      SuccessToast("Partner updated successfully!");
-    } catch (error: any) {
-      console.error("Error updating partner:", error.response?.data || error);
-      ErrorToast("Failed to update partner. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchPartners = async () => {
     try {
-      setPageLoading(true);
+      setFetching(true);
       const token = localStorage.getItem("token");
       if (!token) return;
-
-      const response = await axios.get(`${apiUrl}/api/auth/list?role=partner`, {
+      const res = await axios.get(`${apiUrl}/api/auth/list?role=partner`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      const data = Array.isArray(res.data.data) ? res.data.data : [];
       setPartners(data);
-    } catch (error: any) {
-      console.error("Error fetching partners:", error.response?.data || error);
+      setFilteredPartners(data);
+    } catch (err: any) {
+      console.error("Error fetching partners:", err.response?.data || err);
     } finally {
-      setPageLoading(false);
+      setFetching(false);
     }
   };
 
@@ -164,242 +69,418 @@ export default function Home() {
     fetchPartners();
   }, []);
 
+  const handleQuickSearch = () => {
+    if (!searchName.trim()) {
+      setFilteredPartners(partners);
+    } else {
+      setFilteredPartners(
+        partners.filter((p) =>
+          p.name.toLowerCase().includes(searchName.toLowerCase())
+        )
+      );
+    }
+  };
+
+  const getFiltered = (list: Partner[]) => {
+    const { name, minSalary, maxSalary, startDate, endDate } = filters;
+    return list.filter((p) => {
+      if (name && !p.name.toLowerCase().includes(name.toLowerCase()))
+        return false;
+      if (minSalary && p.salary < Number(minSalary)) return false;
+      if (maxSalary && p.salary > Number(maxSalary)) return false;
+      if (startDate && new Date(p.joinDate) < new Date(startDate)) return false;
+      if (endDate && new Date(p.joinDate) > new Date(endDate)) return false;
+      return true;
+    });
+  };
+
+  const applyFilters = () => {
+    setFilteredPartners(getFiltered(partners));
+    setIsFilterModalOpen(false);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      name: "",
+      minSalary: "",
+      maxSalary: "",
+      startDate: "",
+      endDate: "",
+    });
+    setFilteredPartners(partners);
+    setIsFilterModalOpen(false);
+  };
+
+  const handleSavePartner = async () => {
+    const newErrors: Record<string, string> = {};
+    if (!form.name) newErrors.name = "Name is required";
+    if (!selectedPartner && !form.email) newErrors.email = "Email is required";
+    if (!selectedPartner && !form.password)
+      newErrors.password = "Password is required";
+    if (!form.percentage) newErrors.percentage = "Investment % is required";
+    if (!form.salary) newErrors.salary = "Salary is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const payload = {
+        name: form.name,
+        email: form.email,
+        ...(form.password && { password: form.password }),
+        percentage: Number(form.percentage),
+        salary: Number(form.salary),
+        role: "partner",
+      };
+
+      if (selectedPartner) {
+        await axios.put(`${apiUrl}/api/auth/${selectedPartner._id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        SuccessToast("Partner updated successfully");
+      } else {
+        await axios.post(`${apiUrl}/api/auth/register`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        SuccessToast("Partner added successfully");
+      }
+
+      fetchPartners();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error("Error saving partner:", err.response?.data || err);
+      ErrorToast(err.response?.data?.message || "Failed to save partner");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openEditModal = (partner: Partner) => {
-    setEditingPartner(partner);
+    setSelectedPartner(partner);
     setForm({
       name: partner.name,
       email: partner.email,
       password: "",
-      percentage: String(partner.percentage),
+      percentage: partner.percentage.toString(),
+      salary: partner.salary.toString(),
     });
     setErrors({});
     setIsModalOpen(true);
   };
 
-  const filteredPartners = partners.filter((partner) =>
-    partner.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/");
+  };
 
   return (
     <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
-      <div className="px-10 mt-5">
-        <input
-          type="text"
-          placeholder="Search partner by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full
-           bg-white/10 border border-white/20 text-white w-full"
-        />
-      </div>
-      <div
-        className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br
-     from-gray-900 via-black to-gray-900 text-white"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
-            Partners
-          </h1>
-          <div className="flex gap-4">
+      <div className="bg-gray-900 py-3 desktop:block tablet:block mobile:hidden">
+        <div className="flex justify-between items-center px-10">
+          <h1 className="text-2xl font-semibold text-white">Partners</h1>
+          <div className="flex items-center gap-3">
             {viewMode === "grid" ? (
               <button
                 onClick={() => setViewMode("list")}
-                className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+                className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 text-white cursor-pointer"
               >
-                <FiList size={20} />
+                <FiList size={18} />
               </button>
             ) : (
               <button
                 onClick={() => setViewMode("grid")}
-                className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+                className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 text-white cursor-pointer"
               >
-                <FiGrid size={20} />
+                <FiGrid size={18} />
               </button>
             )}
             <button
               onClick={() => {
-                resetForm();
+                setSelectedPartner(null);
+                setForm({
+                  name: "",
+                  email: "",
+                  password: "",
+                  percentage: "",
+                  salary: "",
+                });
                 setIsModalOpen(true);
               }}
-              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 text-white cursor-pointer"
             >
               + Add Partner
             </button>
+            <div
+              onClick={() => {
+                handleLogout();
+              }}
+              className="cursor-pointer
+                         text-red-400 hover:bg-red-500/10 hover:text-red-300 
+                         transition-colors"
+            >
+              <FiLogOut className="text-xl" />
+            </div>
           </div>
         </div>
-        {pageLoading ? (
-          <p className="text-center text-gray-300">Loading partners...</p>
+      </div>
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative">
+        <input
+          type="text"
+          placeholder="Search partner by name ..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
+          className="desktop:px-4 desktop:py-3 tablet:px-4 tablet:py-3 mobile:px-4 mobile:py-2 rounded-full bg-white/10 border border-white/20 text-white w-full"
+        />
+        <button
+          onClick={handleQuickSearch}
+          className="absolute p-2 rounded-lg hover:text-blue-600 cursor-pointer desktop:right-25 tablet:right-25 mobile:right-15"
+        >
+          <FiSearch size={20} />
+        </button>
+        <button
+          onClick={() => setIsFilterModalOpen(true)}
+          className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+        >
+          <IoFilter size={20} />
+        </button>
+      </div>
+
+      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+        {fetching ? (
+          <p className="text-center text-gray-400 mt-10">Loading partners...</p>
         ) : filteredPartners.length === 0 ? (
-          <p className="text-center text-gray-400">No data found</p>
+          <p className="text-center text-gray-400 mt-10">No partners found.</p>
         ) : viewMode === "grid" ? (
-          <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
-            {filteredPartners.map((partner) => (
+          <div className="grid desktop:grid-cols-2 tablet:grid-cols-2 mobile:grid-cols-1 desktop:gap-6 tablet:gap-6 mobile:gap-2">
+            {filteredPartners.map((p) => (
               <div
-                key={partner._id}
-                className="relative bg-white/10 p-6 rounded-2xl shadow-lg border border-white/10"
+                key={p._id}
+                className="bg-white/10 border-white/10 p-6 rounded-2xl shadow-lg border relative"
               >
                 <button
-                  onClick={() => openEditModal(partner)}
+                  onClick={() => openEditModal(p)}
                   className="absolute top-6 right-3 text-gray-300 hover:text-white cursor-pointer"
                 >
                   <FiEdit2 size={18} />
                 </button>
-
-                <h2 className="text-xl font-semibold">{partner.name}</h2>
-                <p className="text-gray-300">{partner.email}</p>
-                <p>Salary: {partner.salary}</p>
-                <p>Investment: {partner.percentage}%</p>
+                <h2 className="text-xl font-semibold">{p.name}</h2>
+                <p className="text-gray-300">{p.email}</p>
+                <p>Salary: {p.salary}</p>
+                <p>Investment: {p.percentage}%</p>
                 <p>
-                  Joined:{" "}
-                  {new Date(partner.joinDate).toLocaleDateString("en-GB")}
+                  Joined: {new Date(p.joinDate).toLocaleDateString("en-GB")}
                 </p>
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredPartners.map((partner) => (
+            {filteredPartners.map((p) => (
               <div
-                key={partner._id}
-                className="flex justify-between items-center bg-white/10 p-4 pr-10 
-              rounded-xl border border-white/10 relative"
+                key={p._id}
+                className="flex justify-between items-center bg-white/10 p-4 pr-10 rounded-xl border border-white/10 relative"
               >
-                <div>
-                  <h2 className="text-lg font-semibold">{partner.name}</h2>
-                  <p className="text-gray-300">{partner.email}</p>
-                  <p>Salary: {partner.salary}</p>
-                </div>
-                <div className="text-right">
-                  <p>Investment: {partner.percentage}%</p>
-                  <p>
-                    Joined:{" "}
-                    {new Date(partner.joinDate).toLocaleDateString("en-GB")}
-                  </p>
-                </div>
                 <button
-                  onClick={() => openEditModal(partner)}
+                  onClick={() => openEditModal(p)}
                   className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer"
                 >
                   <FiEdit2 size={18} />
                 </button>
+                <div>
+                  <h2 className="text-lg font-semibold">{p.name}</h2>
+                  <p className="text-gray-300">{p.email}</p>
+                </div>
+                <div className="text-right">
+                  <p>Salary: {p.salary}</p>
+                  <p>Investment: {p.percentage}%</p>
+                  <p>
+                    Joined: {new Date(p.joinDate).toLocaleDateString("en-GB")}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         )}
-        {isModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
-              <button
-                className="absolute top-3 right-3 text-gray-300 hover:text-white text-xl cursor-pointer"
-                onClick={() => {
-                  resetForm();
-                  setIsModalOpen(false);
-                }}
-              >
-                ✕
-              </button>
-              <h2 className="text-2xl font-semibold mb-4 text-center">
-                {editingPartner ? "Edit Partner" : "Add Partner"}
-              </h2>
+      </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    name="name"
-                    type="text"
-                    value={form.name}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
-                      errors.name ? "border-red-500" : "border-white/20"
-                    }`}
-                    placeholder="Partner Name"
-                  />
-                  {errors.name && (
-                    <p className="text-red-400 text-sm">{errors.name}</p>
-                  )}
-                </div>
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+            <button
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+              onClick={() => setIsFilterModalOpen(false)}
+            >
+              ✕
+            </button>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              Advanced Partner Search
+            </h2>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  <input
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
-                      errors.email ? "border-red-500" : "border-white/20"
-                    }`}
-                    placeholder="Partner Email"
-                    disabled={!!editingPartner}
-                  />
-                  {errors.email && (
-                    <p className="text-red-400 text-sm">{errors.email}</p>
-                  )}
-                </div>
-
-                {!editingPartner && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Password
-                    </label>
-                    <input
-                      name="password"
-                      type="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
-                        errors.password ? "border-red-500" : "border-white/20"
-                      }`}
-                      placeholder="Partner Password"
-                    />
-                    {errors.password && (
-                      <p className="text-red-400 text-sm">{errors.password}</p>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Investment (%)
-                  </label>
-                  <input
-                    name="percentage"
-                    type="text"
-                    value={form.percentage}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
-                      errors.percentage ? "border-red-500" : "border-white/20"
-                    }`}
-                    placeholder="Partner Investment %"
-                  />
-                  {errors.percentage && (
-                    <p className="text-red-400 text-sm">{errors.percentage}</p>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={
-                  editingPartner ? handleUpdatePartner : handleAddPartner
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Search by name"
+                value={filters.name}
+                onChange={(e) =>
+                  setFilters({ ...filters, name: e.target.value })
                 }
-                disabled={loading}
-                className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+              <div className="flex gap-4">
+                <input
+                  type="number"
+                  placeholder="Min Salary"
+                  value={filters.minSalary}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minSalary: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Salary"
+                  value={filters.maxSalary}
+                  onChange={(e) =>
+                    setFilters({ ...filters, maxSalary: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+              </div>
+              <div className="flex gap-4">
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={resetFilters}
+                className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 cursor-pointer"
               >
-                {loading
-                  ? editingPartner
-                    ? "Saving Changes ..."
-                    : "Adding Partner ..."
-                  : editingPartner
-                  ? "Save Changes"
-                  : "Add Partner"}
+                Reset
+              </button>
+              <button
+                onClick={applyFilters}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              >
+                Apply
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+            <button
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+              onClick={() => setIsModalOpen(false)}
+            >
+              ✕
+            </button>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              {selectedPartner ? "Edit Partner" : "Add Partner"}
+            </h2>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+              {errors.name && (
+                <p className="text-red-400 text-sm">{errors.name}</p>
+              )}
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+              {errors.email && (
+                <p className="text-red-400 text-sm">{errors.email}</p>
+              )}
+
+              {!selectedPartner && (
+                <>
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                  />
+                  {errors.password && (
+                    <p className="text-red-400 text-sm">{errors.password}</p>
+                  )}
+                </>
+              )}
+
+              <input
+                type="number"
+                placeholder="Investment %"
+                value={form.percentage}
+                onChange={(e) =>
+                  setForm({ ...form, percentage: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+              {errors.percentage && (
+                <p className="text-red-400 text-sm">{errors.percentage}</p>
+              )}
+
+              <input
+                type="number"
+                placeholder="Salary"
+                value={form.salary}
+                onChange={(e) => setForm({ ...form, salary: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+              {errors.salary && (
+                <p className="text-red-400 text-sm">{errors.salary}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleSavePartner}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -60,8 +60,10 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-gray-100 text-gray-800">
-      <div className="desktop:flex tablet:flex hidden w-64 bg-gray-900
-       text-white flex-col">
+      <div
+        className="desktop:flex tablet:flex hidden w-64 bg-gray-900
+       text-white flex-col"
+      >
         <div className="p-6">
           <h2 className="text-lg">Finance Management</h2>
         </div>
@@ -82,14 +84,14 @@ export default function DashboardLayout({
         </nav>
 
         <div className="">
-          <div
+          {/* <div
             onClick={handleLogout}
             className="flex items-center space-x-3 p-5 rounded-lg cursor-pointer
              text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
           >
             <FiLogOut className="text-xl" />
             <span className="font-medium">Logout</span>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -127,7 +129,7 @@ export default function DashboardLayout({
         </nav>
 
         <div className="">
-          <div
+          {/* <div
             onClick={() => {
               handleLogout();
               setIsMobileOpen(false);
@@ -138,22 +140,37 @@ export default function DashboardLayout({
           >
             <FiLogOut className="text-xl" />
             <span className="font-medium">Logout</span>
-          </div>
+          </div> */}
         </div>
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-3 bg-gray-900 text-white flex items-center tablet:hidden 
-        desktop:hidden">
+        <div
+          className="p-3 bg-gray-900 text-white flex items-center tablet:hidden 
+        desktop:hidden"
+        >
           <FiMenu
             className="text-2xl cursor-pointer"
             onClick={() => setIsMobileOpen(true)}
           />
           <h2 className="ml-4 text-lg">Finance Management</h2>
+          <div
+            onClick={() => {
+              handleLogout();
+              setIsMobileOpen(false);
+            }}
+            className="rounded-lg cursor-pointer
+             text-red-400 hover:bg-red-500/10 hover:text-red-300 
+             transition-colors ml-36"
+          >
+            <FiLogOut className="text-xl" />
+          </div>
         </div>
 
         <main className="h-full w-full">
-          <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 
-          h-full w-full overflow-auto">
+          <div
+            className="bg-gradient-to-br from-gray-900 via-black to-gray-900 
+          h-full w-full overflow-auto"
+          >
             {children}
           </div>
         </main>

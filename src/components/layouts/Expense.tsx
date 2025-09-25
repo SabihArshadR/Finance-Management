@@ -1,12 +1,13 @@
 "use client";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiLogOut, FiSearch, FiX } from "react-icons/fi";
+import { IoFilter } from "react-icons/io5";
 import { ErrorToast, SuccessToast } from "../ui/Toast";
+import { useRouter } from "next/navigation";
 
 type Expense = {
   _id?: string;
-  category: string;
   categoryName?: string;
   amount: string;
   date: string;
@@ -14,6 +15,9 @@ type Expense = {
   employee: string;
   employeeName?: string;
   flow: "in" | "out";
+  txnDate?: string;
+  spentBy?: any;
+  category?: any;
 };
 
 type Category = {
@@ -31,8 +35,6 @@ type User = {
 };
 
 export default function ExpenseManager() {
-  // const apiUrl = "https://finance-backend-phi.vercel.app";
-  // const apiUrl = "http://localhost:3000";
   const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,13 +52,14 @@ export default function ExpenseManager() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [reportExpenses, setReportExpenses] = useState<Expense[]>([]);
-  const [loadingReport, setLoadingReport] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const router = useRouter();
+
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filteredTxns, setFilteredTxns] = useState<any[]>([]);
+  const [searchName, setSearchName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [filterFlow, setFilterFlow] = useState("");
   const [filterUser, setFilterUser] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -73,7 +76,6 @@ export default function ExpenseManager() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCategories(response.data.data || []);
-      console.log(response.data.data, "categories");
     } catch (error: any) {
       console.error(
         "Error fetching categories:",
@@ -90,22 +92,72 @@ export default function ExpenseManager() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(Array.isArray(response.data.data) ? response.data.data : []);
-      console.log(response, "users");
     } catch (error: any) {
       console.error("Error fetching users:", error.response?.data || error);
     }
   };
 
   const fetchTransactions = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const res = await axios.get(`${apiUrl}/api/transaction-report?year=2025`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = res.data.data?.transactions || [];
-    setTransactions(data);
-    setFilteredTxns(data);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await axios.get(
+        `${apiUrl}/api/transaction-report?year=2025`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = res.data.data?.transactions || [];
+      setTransactions(data);
+      setFilteredTxns(data);
+    } catch (err: any) {
+      console.error("Error fetching transactions:", err.response?.data || err);
+    }
   };
+
+  useEffect(() => {
+    getCategory();
+    fetchUsers();
+    fetchTransactions();
+  }, []);
+
+  useEffect(() => {
+    let data = [...transactions];
+
+    if (filterFlow) {
+      data = data.filter((t) => t.flow === filterFlow);
+    }
+    if (filterUser) {
+      data = data.filter((t) => t.spentBy?._id === filterUser);
+    }
+    if (filterCategory) {
+      data = data.filter((t) => t.category?._id === filterCategory);
+    }
+    if (filterDateRange.start && filterDateRange.end) {
+      const start = new Date(filterDateRange.start);
+      const end = new Date(filterDateRange.end);
+      data = data.filter((t) => {
+        const txnDate = new Date(t.txnDate || t.date || t.createdAt);
+        return txnDate >= start && txnDate <= end;
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      data = data.filter((t) =>
+        (t.spentBy?.name || t.employeeName || "").toLowerCase().includes(q)
+      );
+    }
+
+    setFilteredTxns(data);
+  }, [
+    filterFlow,
+    filterUser,
+    filterCategory,
+    filterDateRange,
+    transactions,
+    searchQuery,
+  ]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -136,7 +188,6 @@ export default function ExpenseManager() {
       await axios.post(`${apiUrl}/api/add-transaction`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(payload);
       SuccessToast("Expense added successfully!");
       setForm({
         category: "",
@@ -148,10 +199,9 @@ export default function ExpenseManager() {
         employeeName: "",
         flow: "out",
       });
-      console.log(payload);
       setErrors({});
       setShowExpenseModal(false);
-      fetchTransactions()
+      fetchTransactions();
     } catch (err: any) {
       console.error("Error adding expense:", err.response?.data || err);
       ErrorToast("Failed to add expense");
@@ -160,196 +210,84 @@ export default function ExpenseManager() {
     }
   };
 
-  const fetchReport = async (
-    type: "category" | "employee" | "date" | "flow"
-  ) => {
-    setLoadingReport(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      let url = "";
-      if (type === "category" && selectedCategory) {
-        url = `${apiUrl}/api/filter-transaction?category=${selectedCategory}`;
-      } else if (type === "employee" && selectedEmployee) {
-        url = `${apiUrl}/api/filter-transaction?spentBy=${selectedEmployee}`;
-      } else if (type === "date" && dateRange.start && dateRange.end) {
-        url = `${apiUrl}/api/filter-transaction?startDate=${dateRange.start}&endDate=${dateRange.end}`;
-      } else if (type === "flow" && form.flow) {
-        url = `${apiUrl}/api/filter-transaction?flow=${form.flow}`;
-      }
-
-      if (url) {
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setReportExpenses(res.data.data || []);
-      }
-    } catch (err: any) {
-      console.error("Error fetching report:", err.response?.data || err);
-      ErrorToast("Failed to fetch report");
-    } finally {
-      setLoadingReport(false);
-    }
+  const handleQuickSearch = () => {
+    setSearchQuery(searchName.trim());
   };
 
-  useEffect(() => {
-    getCategory();
-    fetchUsers();
-    fetchR();
-    fetchFlow();
-    fetchTransactions();
-  }, []);
-
-  const fetchR = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await axios.get(
-        `${apiUrl}/api/transaction-report?year=2025`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const data = response.data.data?.transactions || [];
-      setTransactions(data);
-      console.log(data, "fetch report");
-    } catch (error: any) {
-      console.error(
-        "Error fetching transactions:",
-        error.response?.data || error
-      );
-    }
+  const clearQuickSearch = () => {
+    setSearchName("");
+    setSearchQuery("");
   };
 
-  const fetchFlow = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await axios.get(
-        `${apiUrl}/api/filter-transaction?flow=in`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      console.log(response.data.data, "fetch flow");
-    } catch (error: any) {
-      console.error(
-        "Error fetching transactions:",
-        error.response?.data || error
-      );
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/");
   };
-
-  useEffect(() => {
-    let data = [...transactions];
-
-    if (filterFlow) {
-      data = data.filter((t) => t.flow === filterFlow);
-    }
-    if (filterUser) {
-      data = data.filter((t) => t.spentBy?._id === filterUser);
-    }
-    if (filterCategory) {
-      data = data.filter((t) => t.category?._id === filterCategory);
-    }
-    if (filterDateRange.start && filterDateRange.end) {
-      const start = new Date(filterDateRange.start);
-      const end = new Date(filterDateRange.end);
-      data = data.filter((t) => {
-        const txnDate = new Date(t.txnDate);
-        return txnDate >= start && txnDate <= end;
-      });
-    }
-
-    setFilteredTxns(data);
-  }, [filterFlow, filterUser, filterCategory, filterDateRange, transactions]);
 
   return (
     <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
-      <div className="px-10 mt-5">
-        <input
-          type="text"
-          placeholder="Search expense by name..."
-          // value={search}
-          // onChange={(e) => setSearch(e.target.value)}
-          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 
-          border border-white/20 text-white w-full"
-        />
-      </div>
-      <div className="min-h-screen p-10 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-xl font-semibold">
+      <div className="text-white bg-gray-900 py-3 px-10 desktop:block tablet:block mobile:hidden">
+        <div className="flex justify-between items-center">
+          <h1 className="desktop:text-2xl tablet:text-3xl mobile:text-xl font-semibold">
             Transactions
           </h1>
-          <button
-            onClick={() => setShowExpenseModal(true)}
-            className="bg-green-600 desktop:px-4 desktop:py-2 tablet:px-4 tablet:py-2 mobile:py-1 mobile:px-1 rounded-lg hover:bg-green-700 cursor-pointer"
-          >
-            + Add Transaction
-          </button>
-        </div>
-
-        <div className="grid desktop:grid-cols-10 tablet:grid-cols-5 mobile:grid-cols-1 gap-4 mb-6">
-          <select
-            value={filterFlow}
-            onChange={(e) => setFilterFlow(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
-          >
-            <option value="" className="bg-gray-900">All Flows</option>
-            <option value="in" className="bg-gray-900">In</option>
-            <option value="out" className="bg-gray-900">Out</option>
-          </select>
-          <select
-            value={filterUser}
-            onChange={(e) => setFilterUser(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
-          >
-            <option value="" className="bg-gray-900">All Users</option>
-            {users.map((u) => (
-              <option key={u._id} value={u._id} className="bg-gray-900">
-                {u.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
-          >
-            <option value="" className="bg-gray-900">All Categories</option>
-            {categories.map((c) => (
-              <option key={c._id} value={c._id} className="bg-gray-900">
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <div className="desktop:flex tablet:flex mobile:grid gap-2">
-            <input
-              type="date"
-              value={filterDateRange.start}
-              onChange={(e) =>
-                setFilterDateRange({
-                  ...filterDateRange,
-                  start: e.target.value,
-                })
-              }
-              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white w-full"
-            />
-            <input
-              type="date"
-              value={filterDateRange.end}
-              onChange={(e) =>
-                setFilterDateRange({ ...filterDateRange, end: e.target.value })
-              }
-              className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white w-full"
-            />
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => setShowExpenseModal(true)}
+              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+            >
+              + Add Transaction
+            </button>
+            <div
+              onClick={() => {
+                handleLogout();
+              }}
+              className="cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors items-center flex"
+            >
+              <FiLogOut className="text-xl items-center" />
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative">
+        <input
+          type="text"
+          placeholder="Search by employee name ..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 border border-white/20 text-white w-full"
+        />
+
+        <button
+          onClick={handleQuickSearch}
+          className="p-2 rounded-lg hover:text-blue-600 cursor-pointer absolute desktop:right-25 tablet:right-25 mobile:right-15"
+          title="Search"
+        >
+          <FiSearch size={20} />
+        </button>
+
+        <button
+          onClick={() => setShowFilterModal(true)}
+          className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+          title="Filters"
+        >
+          <IoFilter size={20} />
+        </button>
+
+        {searchQuery ? (
+          <button
+            onClick={clearQuickSearch}
+            className="ml-2 p-2 rounded-lg bg-white/10 hover:bg-gray-700 cursor-pointer"
+            title="Clear search"
+          >
+            <FiX size={18} />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
         <div>
           {filteredTxns.length === 0 ? (
             <p className="text-gray-400 text-center">
@@ -362,17 +300,21 @@ export default function ExpenseManager() {
                   key={txn._id}
                   className="bg-white/10 p-4 rounded-lg border border-white/20"
                 >
-                  <h3 className="text-lg font-semibold">{txn.name}</h3>
                   <p className="text-sm text-gray-400">
-                    Spent By: {txn.spentBy?.name || txn.name}
+                    Spent By:{" "}
+                    {txn.spentBy?.name || txn.employeeName || txn.name}
                   </p>
                   <p className="text-sm text-gray-400">
-                    Category: {txn.category?.name || txn.name}
+                    Category:{" "}
+                    {txn.category?.name || txn.categoryName || txn.name}
                   </p>
                   <p className="text-sm text-gray-400">Amount: {txn.amount}</p>
                   <p className="text-sm text-gray-400">Flow: {txn.flow}</p>
                   <p className="text-sm text-gray-400">
-                    Date: {new Date(txn.txnDate).toLocaleDateString()}
+                    Date:{" "}
+                    {new Date(
+                      txn.txnDate || txn.date || txn.createdAt
+                    ).toLocaleDateString()}
                   </p>
                 </div>
               ))}
@@ -380,21 +322,119 @@ export default function ExpenseManager() {
           )}
         </div>
 
-        {showExpenseModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-            <div
-              className="w-full max-w-md bg-white/10 backdrop-blur-lg p-6 rounded-2xl shadow-xl 
-            text-white relative border border-white/20"
-            >
+        {showFilterModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="w-full max-w-lg bg-white/10 p-6 rounded-2xl shadow-xl text-white relative border border-white/20">
               <button
-                className="absolute top-3 right-3 text-gray-400 hover:text-white cursor-pointer"
+                className="absolute top-3 right-3 text-gray-400 hover:text-white"
+                onClick={() => setShowFilterModal(false)}
+              >
+                <FiX size={20} />
+              </button>
+              <h2 className="text-xl font-semibold mb-4 text-center">
+                Search Filters
+              </h2>
+
+              <div className="space-y-4">
+                <select
+                  value={filterFlow}
+                  onChange={(e) => setFilterFlow(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                >
+                  <option value="">All Flows</option>
+                  <option value="in">In</option>
+                  <option value="out">Out</option>
+                </select>
+
+                <select
+                  value={filterUser}
+                  onChange={(e) => setFilterUser(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                >
+                  <option value="">All Users</option>
+                  {users.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={filterDateRange.start}
+                    onChange={(e) =>
+                      setFilterDateRange({
+                        ...filterDateRange,
+                        start: e.target.value,
+                      })
+                    }
+                    className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                  />
+                  <input
+                    type="date"
+                    value={filterDateRange.end}
+                    onChange={(e) =>
+                      setFilterDateRange({
+                        ...filterDateRange,
+                        end: e.target.value,
+                      })
+                    }
+                    className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+                  />
+                </div>
+
+                <div className="flex justify-between mt-4">
+                  <button
+                    onClick={() => {
+                      setFilterFlow("");
+                      setFilterUser("");
+                      setFilterCategory("");
+                      setFilterDateRange({ start: "", end: "" });
+                    }}
+                    className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 cursor-pointer"
+                  >
+                    Reset
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowFilterModal(false);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showExpenseModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl shadow-xl text-white relative border border-white/20">
+              <button
+                className="absolute top-3 right-3 text-gray-400 hover:text-white"
                 onClick={() => setShowExpenseModal(false)}
               >
                 <FiX size={20} />
               </button>
-
               <h2 className="text-xl font-semibold mb-4 text-center">
-                Add transaction
+                Add Transaction
               </h2>
 
               <div className="space-y-3">
@@ -414,22 +454,13 @@ export default function ExpenseManager() {
                     errors.category ? "border-red-500" : "border-white/20"
                   }`}
                 >
-                  <option value="" className="bg-gray-900">
-                    Select Category
-                  </option>
+                  <option value="">Select Category</option>
                   {categories.map((cat) => (
-                    <option
-                      key={cat._id}
-                      value={cat._id}
-                      className="bg-gray-900"
-                    >
+                    <option key={cat._id} value={cat._id}>
                       {cat.name}
                     </option>
                   ))}
                 </select>
-                {errors.category && (
-                  <p className="text-red-400 text-sm">{errors.category}</p>
-                )}
 
                 <label className="block text-sm font-medium">Amount</label>
                 <input
@@ -441,9 +472,7 @@ export default function ExpenseManager() {
                     errors.amount ? "border-red-500" : "border-white/20"
                   }`}
                 />
-                {errors.amount && (
-                  <p className="text-red-400 text-sm">{errors.amount}</p>
-                )}
+
                 <label className="block text-sm font-medium">Date</label>
                 <input
                   type="date"
@@ -453,9 +482,7 @@ export default function ExpenseManager() {
                     errors.date ? "border-red-500" : "border-white/20"
                   }`}
                 />
-                {errors.date && (
-                  <p className="text-red-400 text-sm">{errors.date}</p>
-                )}
+
                 <label className="block text-sm font-medium">Description</label>
                 <input
                   type="text"
@@ -468,9 +495,7 @@ export default function ExpenseManager() {
                     errors.description ? "border-red-500" : "border-white/20"
                   }`}
                 />
-                {errors.description && (
-                  <p className="text-red-400 text-sm">{errors.description}</p>
-                )}
+
                 <label className="block text-sm font-medium">Employee</label>
                 <select
                   value={form.employee}
@@ -486,25 +511,15 @@ export default function ExpenseManager() {
                     errors.employee ? "border-red-500" : "border-white/20"
                   }`}
                 >
-                  <option value="" className="bg-gray-900">
-                    Select Employee
-                  </option>
+                  <option value="">Select Employee</option>
                   {users.map((user) => (
-                    <option
-                      key={user._id}
-                      value={user._id}
-                      className="bg-gray-900"
-                    >
+                    <option key={user._id} value={user._id}>
                       {user.name}
                     </option>
                   ))}
                 </select>
-                {errors.employee && (
-                  <p className="text-red-400 text-sm">{errors.employee}</p>
-                )}
-                <label className="block text-sm font-medium mt-4 mb-1">
-                  Flow
-                </label>
+
+                <label className="block text-sm font-medium">Flow</label>
                 <select
                   value={form.flow}
                   onChange={(e) =>
@@ -512,19 +527,14 @@ export default function ExpenseManager() {
                   }
                   className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
                 >
-                  <option className="bg-gray-900" value="in">
-                    In
-                  </option>
-                  <option className="bg-gray-900" value="out">
-                    Out
-                  </option>
+                  <option value="in">In</option>
+                  <option value="out">Out</option>
                 </select>
+
                 <button
                   onClick={addExpense}
                   disabled={isAddingExpense}
-                  className="mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 
-                  disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 
-                  rounded-lg w-full"
+                  className="mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-white px-4 py-2 rounded-lg w-full"
                 >
                   {isAddingExpense
                     ? "Adding transaction..."

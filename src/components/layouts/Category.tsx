@@ -1,8 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FiTrash2 } from "react-icons/fi";
+import { FiLogOut, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import { IoFilter } from "react-icons/io5";
 import { SuccessToast, ErrorToast } from "../ui/Toast";
+import { useRouter } from "next/navigation";
 
 type CategoryType = {
   _id: string;
@@ -11,8 +13,6 @@ type CategoryType = {
 };
 
 const Category = () => {
-  // const apiUrl = "https://finance-backend-phi.vercel.app";
-  // const apiUrl = "http://localhost:3000";
   const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -24,7 +24,15 @@ const Category = () => {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(
     null
   );
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const [searchName, setSearchName] = useState("");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    name: "",
+    startDate: "",
+    endDate: "",
+  });
+
   const [categoryFlow, setCategoryFlow] = useState<"in" | "out">("in");
 
   const fetchCategories = async () => {
@@ -81,7 +89,9 @@ const Category = () => {
 
       await axios.delete(
         `${apiUrl}/api/delete-category/${selectedCategory._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       SuccessToast("Category deleted successfully");
@@ -99,46 +109,107 @@ const Category = () => {
     fetchCategories();
   }, []);
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(search.toLowerCase())
+  const handleQuickSearch = () => {
+    if (!searchName.trim()) return categories;
+    return categories.filter((cat) =>
+      cat.name.toLowerCase().includes(searchName.toLowerCase())
+    );
+  };
+
+  const getFiltered = (list: CategoryType[]) => {
+    const { name, startDate, endDate } = filters;
+
+    return list.filter((cat) => {
+      if (name && !cat.name.toLowerCase().includes(name.toLowerCase()))
+        return false;
+      if (startDate && new Date(cat.createdAt) < new Date(startDate))
+        return false;
+      if (endDate && new Date(cat.createdAt) > new Date(endDate)) return false;
+      return true;
+    });
+  };
+
+  const [filteredCategories, setFilteredCategories] = useState<CategoryType[]>(
+    []
   );
+  useEffect(() => {
+    setFilteredCategories(categories);
+  }, [categories]);
+
+  const applyFilters = () => {
+    setFilteredCategories(getFiltered(categories));
+    setIsFilterModalOpen(false);
+  };
+
+  const resetFilters = () => {
+    setFilters({ name: "", startDate: "", endDate: "" });
+    setFilteredCategories(categories);
+    setIsFilterModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/");
+  };
 
   return (
     <div>
-      <div className="px-10 mt-5">
-        <input
-          type="text"
-          placeholder="Search category by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 
-          rounded-full bg-white/10 border border-white/20 focus:border-blue-500 
-          outline-none text-white w-full"
-        />
-      </div>
-      <div
-        className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 
-      bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
+      <div className="text-white bg-gray-900 px-10 py-3 desktop:block tablet:block mobile:hidden">
+        <div className="flex justify-between items-center">
+          <h1 className="desktop:text-2xl tablet:text-3xl mobile:text-lg font-semibold">
             Categories
           </h1>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <button
               onClick={() => setIsCategoryModalOpen(true)}
               className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
             >
               + Add Category
             </button>
+            <div
+              onClick={() => {
+                handleLogout();
+              }}
+              className="cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors items-center flex"
+            >
+              <FiLogOut className="text-xl items-center" />
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative">
+        <input
+          type="text"
+          placeholder="Search category by name ..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          onKeyDown={(e) =>
+            e.key === "Enter" && setFilteredCategories(handleQuickSearch())
+          }
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 border border-white/20 text-white w-full"
+        />
+        <button
+          onClick={() => setFilteredCategories(handleQuickSearch())}
+          className="absolute p-2 rounded-lg hover:text-blue-600 cursor-pointer desktop:right-25 tablet:right-25 mobile:right-15"
+        >
+          <FiSearch size={20} />
+        </button>
+        <button
+          onClick={() => setIsFilterModalOpen(true)}
+          className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+        >
+          <IoFilter size={20} />
+        </button>
+      </div>
+
+      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
         {loading ? (
           <p className="text-center text-gray-400">Loading categories...</p>
         ) : filteredCategories.length === 0 ? (
           <p className="text-center text-gray-400">No categories found.</p>
         ) : (
-          <div className="grid desktop:grid-cols-3 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
+          <div className="grid desktop:grid-cols-3 tablet:grid-cols-2 mobile:grid-cols-1 desktop:gap-6 tablet:gap-6 mobile:gap-2">
             {filteredCategories.map((cat) => (
               <div
                 key={cat._id}
@@ -161,90 +232,142 @@ const Category = () => {
             ))}
           </div>
         )}
-        {isCategoryModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div
-              className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 
-          rounded-2xl shadow-xl text-white relative"
+      </div>
+
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+          <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+            <button
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+              onClick={() => setIsFilterModalOpen(false)}
             >
-              <button
-                className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
-                onClick={() => setIsCategoryModalOpen(false)}
-              >
-                ✕
-              </button>
-              <h2 className="text-2xl font-semibold mb-4 text-center">
-                Add Category
-              </h2>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              ✕
+            </button>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              Filter Categories
+            </h2>
+
+            <div className="space-y-4">
               <input
                 type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Category Name"
+                placeholder="Search by name"
+                value={filters.name}
+                onChange={(e) =>
+                  setFilters({ ...filters, name: e.target.value })
+                }
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
               />
-              <label className="block text-sm font-medium mt-4 mb-1">
-                Flow
-              </label>
-              <select
-                value={categoryFlow}
-                onChange={(e) =>
-                  setCategoryFlow(e.target.value as "in" | "out")
-                }
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
-              >
-                <option className="bg-gray-900" value="in">
-                  In
-                </option>
-                <option className="bg-gray-900" value="out">
-                  Out
-                </option>
-              </select>
+
+              <div className="flex gap-4">
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
+                  className="w-1/2 px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-6">
               <button
-                onClick={addCategory}
-                disabled={isAddingCategory}
-                className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
-              disabled:opacity-50 cursor-pointer"
+                onClick={resetFilters}
+                className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 cursor-pointer"
               >
-                {isAddingCategory ? "Adding Category..." : "Add Category"}
+                Reset
+              </button>
+              <button
+                onClick={applyFilters}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              >
+                Apply
               </button>
             </div>
           </div>
-        )}
-        {isDeleteModalOpen && selectedCategory && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div
-              className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl 
-          shadow-xl text-white text-center"
+        </div>
+      )}
+
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+            <button
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+              onClick={() => setIsCategoryModalOpen(false)}
             >
-              <h2 className="text-xl font-semibold mb-4">
-                Delete {selectedCategory.name}?
-              </h2>
-              <p className="text-gray-300 mb-6">
-                Are you sure you want to delete this category?
-              </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={deleteCategory}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg cursor-pointer"
-                >
-                  Yes, Delete
-                </button>
-                <button
-                  onClick={() => {
-                    setIsDeleteModalOpen(false);
-                    setSelectedCategory(null);
-                  }}
-                  className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
+              ✕
+            </button>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              Add Category
+            </h2>
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              placeholder="Category Name"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+            />
+            <label className="block text-sm font-medium mt-4 mb-1">Flow</label>
+            <select
+              value={categoryFlow}
+              onChange={(e) => setCategoryFlow(e.target.value as "in" | "out")}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
+            >
+              <option className="bg-gray-900" value="in">
+                In
+              </option>
+              <option className="bg-gray-900" value="out">
+                Out
+              </option>
+            </select>
+            <button
+              onClick={addCategory}
+              disabled={isAddingCategory}
+              className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {isAddingCategory ? "Adding Category..." : "Add Category"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && selectedCategory && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              Delete {selectedCategory.name}?
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this category?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={deleteCategory}
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg cursor-pointer"
+              >
+                Yes, Delete
+              </button>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setSelectedCategory(null);
+                }}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg cursor-pointer"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { ErrorToast, SuccessToast } from "../ui/Toast";
+import { FiLogOut, FiSearch } from "react-icons/fi";
+import { IoFilter } from "react-icons/io5";
+import { SuccessToast, ErrorToast } from "../ui/Toast";
+import { useRouter } from "next/navigation";
 
 type User = {
   _id: string;
@@ -12,37 +15,44 @@ type User = {
 type Loan = {
   _id: string;
   lender: string;
-  totalAmount: number;
+  totalAmount?: number;
+  amount?: number;
   duration: number;
-  emiAmount: number;
-  totalPayable: number;
-  totalPaid: number;
-  remaining: number;
+  emiAmount?: number;
+  totalPayable?: number;
+  totalPaid?: number;
+  remaining?: number;
   startDate: string;
   endDate: string;
 };
 
 export default function LoanPage() {
-  // const apiUrl = "https://finance-backend-phi.vercel.app";
-  // const apiUrl = "http://localhost:3000";
   const apiUrl = "https://finance-management-backend-eight.vercel.app";
 
   const [users, setUsers] = useState<User[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [filteredLoans, setFilteredLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchName, setSearchName] = useState("");
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    name: "",
+    startDate: "",
+    endDate: "",
+    minAmount: "",
+    maxAmount: "",
+  });
 
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [loan, setLoan] = useState({
+  const [loanForm, setLoanForm] = useState({
     lender: "",
     amount: "",
     interest: "",
     duration: "",
     purpose: "",
   });
-
   const [errors, setErrors] = useState({
     lender: "",
     amount: "",
@@ -50,19 +60,18 @@ export default function LoanPage() {
     interest: "",
     purpose: "",
   });
+  const router = useRouter();
 
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-
-      const response = await axios.get(`${apiUrl}/api/auth/list`, {
+      const res = await axios.get(`${apiUrl}/api/auth/list`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      setUsers(Array.isArray(response.data.data) ? response.data.data : []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.response?.data || error);
+      setUsers(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err: any) {
+      console.error("Error fetching users:", err.response?.data || err);
     }
   };
 
@@ -71,14 +80,14 @@ export default function LoanPage() {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return;
-
-      const response = await axios.get(`${apiUrl}/api/loan-report`, {
+      const res = await axios.get(`${apiUrl}/api/loan-report`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      setLoans(Array.isArray(response.data.data) ? response.data.data : []);
-    } catch (error: any) {
-      console.error("Error fetching loans:", error.response?.data || error);
+      const data = Array.isArray(res.data.data) ? res.data.data : [];
+      setLoans(data);
+      setFilteredLoans(data);
+    } catch (err: any) {
+      console.error("Error fetching loans:", err.response?.data || err);
     } finally {
       setLoading(false);
     }
@@ -89,14 +98,76 @@ export default function LoanPage() {
     fetchLoans();
   }, []);
 
+  const getLoanAmount = (l: Loan) =>
+    (l as any).totalAmount ?? (l as any).amount ?? 0;
+
+  const handleQuickSearch = () => {
+    if (!searchName.trim()) {
+      setFilteredLoans(loans);
+      return;
+    }
+    const q = searchName.toLowerCase();
+    const result = loans.filter((l) => {
+      const lenderName =
+        users.find((u) => u._id === l.lender)?.name || l.lender || "";
+      return lenderName.toLowerCase().includes(q);
+    });
+    setFilteredLoans(result);
+  };
+
+  const getFiltered = (list: Loan[]) => {
+    const { name, startDate, endDate, minAmount, maxAmount } = filters;
+    return list.filter((l) => {
+      const lenderName =
+        users.find((u) => u._id === l.lender)?.name || l.lender || "";
+
+      if (name && !lenderName.toLowerCase().includes(name.toLowerCase()))
+        return false;
+
+      if (startDate) {
+        const loanStart = new Date(l.startDate);
+        if (isNaN(loanStart.getTime()) || loanStart < new Date(startDate))
+          return false;
+      }
+
+      if (endDate) {
+        const loanEnd = new Date(l.endDate);
+        if (isNaN(loanEnd.getTime()) || loanEnd > new Date(endDate))
+          return false;
+      }
+
+      const amt = getLoanAmount(l);
+      if (minAmount && amt < Number(minAmount)) return false;
+      if (maxAmount && amt > Number(maxAmount)) return false;
+
+      return true;
+    });
+  };
+
+  const applyFilters = () => {
+    setFilteredLoans(getFiltered(loans));
+    setIsFilterModalOpen(false);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      name: "",
+      startDate: "",
+      endDate: "",
+      minAmount: "",
+      maxAmount: "",
+    });
+    setFilteredLoans(loans);
+    setIsFilterModalOpen(false);
+  };
+
   const validate = () => {
     const newErrors: any = {};
-    if (!loan.lender) newErrors.lender = "Please select a lender";
-    if (!loan.amount) newErrors.amount = "Please enter loan amount";
-    if (!loan.duration) newErrors.duration = "Please enter duration in months";
-    if (!loan.interest) newErrors.interest = "Please enter interest rate";
-    if (!loan.purpose) newErrors.purpose = "Please enter purpose of loan";
-
+    if (!loanForm.lender) newErrors.lender = "Please select a lender";
+    if (!loanForm.amount) newErrors.amount = "Please enter loan amount";
+    if (!loanForm.duration) newErrors.duration = "Please enter duration";
+    if (!loanForm.interest) newErrors.interest = "Please enter interest rate";
+    if (!loanForm.purpose) newErrors.purpose = "Please enter purpose";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -104,26 +175,27 @@ export default function LoanPage() {
   const addLoan = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
-
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        ErrorToast("No token found. Please login.");
+        setIsSubmitting(false);
+        return;
+      }
 
       const payload = {
-        lender: loan.lender,
-        amount: Number(loan.amount),
-        interestRate: Number(loan.interest),
-        durationMonths: Number(loan.duration),
-        purpose: loan.purpose,
+        lender: loanForm.lender,
+        amount: Number(loanForm.amount),
+        interestRate: Number(loanForm.interest),
+        durationMonths: Number(loanForm.duration),
+        purpose: loanForm.purpose,
       };
-
       await axios.post(`${apiUrl}/api/add-load`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       SuccessToast("Loan added successfully!");
-
-      setLoan({
+      setLoanForm({
         lender: "",
         amount: "",
         interest: "",
@@ -138,112 +210,144 @@ export default function LoanPage() {
         purpose: "",
       });
       setIsLoanModalOpen(false);
-      fetchLoans();
+      await fetchLoans();
     } catch (err: any) {
       console.error("Error adding loan:", err.response?.data || err);
-      ErrorToast("Failed to add loan");
+      ErrorToast(err.response?.data?.message || "Failed to add loan");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleNumberInput = (field: keyof typeof loan, value: string) => {
+  const handleNumberInput = (field: keyof typeof loanForm, value: string) => {
     if (/^\d*\.?\d*$/.test(value)) {
-      setLoan({ ...loan, [field]: value });
+      setLoanForm({ ...loanForm, [field]: value });
     }
   };
 
-  const filteredLoans = loans.filter((loan) => {
-  const lenderName =
-    users.find((user) => user._id === loan.lender)?.name || loan.lender;
-
-  return lenderName.toLowerCase().includes(search.toLowerCase());
-});
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/");
+  };
 
   return (
-    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
-      <div className="px-10 mt-5">
+    <div>
+      <div className="text-white bg-gray-900 px-10 py-3 desktop:block tablet:block mobile:hidden">
+        <div className="flex justify-between items-center">
+          <h1 className="desktop:text-2xl tablet:text-3xl mobile:text-lg font-semibold">
+            Loans
+          </h1>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsLoanModalOpen(true)}
+              className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+            >
+              + Add Loan
+            </button>
+            <div
+              onClick={() => {
+                handleLogout();
+              }}
+              className="cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors items-center flex"
+            >
+              <FiLogOut className="text-xl items-center" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="desktop:px-10 tablet:px-10 mobile:px-2 mt-5 flex gap-3 text-white items-center relative">
         <input
           type="text"
-          placeholder="Search loan by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full 
-          bg-white/10 border border-white/20 text-white w-full"
+          placeholder="Search loan by lender name ..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleQuickSearch()}
+          className="px-4 desktop:py-3 tablet:py-3 mobile:py-1.5 rounded-full bg-white/10 border border-white/20 text-white w-full"
         />
-      </div>
-    <div
-      className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 
-      bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white"
-      >
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="desktop:text-3xl tablet:text-3xl mobile:text-lg font-semibold">
-          Loans
-        </h1>
         <button
-          onClick={() => setIsLoanModalOpen(true)}
-          className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+          onClick={handleQuickSearch}
+          className="absolute p-2 rounded-lg hover:text-blue-600 cursor-pointer desktop:right-25 tablet:right-25 mobile:right-15"
+          title="Search"
         >
-          + Add Loan
+          <FiSearch size={20} />
+        </button>
+
+        <button
+          onClick={() => setIsFilterModalOpen(true)}
+          className="p-2 rounded-lg bg-white/10 hover:bg-blue-600 cursor-pointer"
+          title="Advanced filters"
+        >
+          <IoFilter size={20} />
         </button>
       </div>
-      {loading ? (
-        <div className="text-center text-gray-400 mt-20">Loading loans...</div>
-      ) : filteredLoans.length === 0 ? (
-        <div className="text-center text-gray-400 mt-20">
-          No loans available yet.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-6">
-          {filteredLoans.map((loan) => (
-            <div
-              key={loan._id}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 p-6 
-              rounded-2xl shadow-lg"
-              >
-              <h2 className="text-xl font-semibold mb-2">{loan.lender}</h2>
-              <p className="text-sm text-gray-300 mb-1">
-                Amount: <span className="text-white">${loan.totalAmount}</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-1">
-                Duration:{" "}
-                <span className="text-white">{loan.duration} months</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-1">
-                EMI: <span className="text-white">${loan.emiAmount}</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-1">
-                Total Payable:{" "}
-                <span className="text-white">${loan.totalPayable}</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-1">
-                Paid: <span className="text-white">${loan.totalPaid}</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-1">
-                Remaining: <span className="text-white">${loan.remaining}</span>
-              </p>
-              <p className="text-sm text-gray-300">
-                Period:{" "}
-                <span className="text-white">
-                  {new Date(loan.startDate).toLocaleDateString()} -{" "}
-                  {new Date(loan.endDate).toLocaleDateString()}
-                </span>
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+        {loading ? (
+          <div className="text-center text-gray-400 mt-20">
+            Loading loans...
+          </div>
+        ) : filteredLoans.length === 0 ? (
+          <div className="text-center text-gray-400 mt-20">No loans found.</div>
+        ) : (
+          <div className="grid desktop:grid-cols-3 tablet:grid-cols-2 mobile:grid-cols-1 gap-6">
+            {filteredLoans.map((ln) => {
+              const lenderName =
+                users.find((u) => u._id === ln.lender)?.name ||
+                ln.lender ||
+                "Unknown";
+              const amount = getLoanAmount(ln);
+              return (
+                <div
+                  key={ln._id}
+                  className="bg-white/10 p-6 rounded-2xl shadow-lg border border-white/20"
+                >
+                  <h3 className="text-lg font-semibold mb-2">{lenderName}</h3>
+                  <p className="text-sm text-gray-300 mb-1">
+                    Amount: <span className="text-white">${amount}</span>
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">
+                    Duration:{" "}
+                    <span className="text-white">{ln.duration} months</span>
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">
+                    EMI:{" "}
+                    <span className="text-white">${ln.emiAmount ?? "-"}</span>
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">
+                    Total Payable:{" "}
+                    <span className="text-white">
+                      ${ln.totalPayable ?? "-"}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">
+                    Paid:{" "}
+                    <span className="text-white">${ln.totalPaid ?? "-"}</span>
+                  </p>
+                  <p className="text-sm text-gray-300 mb-1">
+                    Remaining:{" "}
+                    <span className="text-white">${ln.remaining ?? "-"}</span>
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    Period:{" "}
+                    <span className="text-white">
+                      {new Date(ln.startDate).toLocaleDateString()} -{" "}
+                      {new Date(ln.endDate).toLocaleDateString()}
+                    </span>
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
       {isLoanModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
-          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 
-          rounded-2xl shadow-xl text-white relative">
+          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
+              className="absolute top-3 right-3 text-gray-300 hover:text-white"
               onClick={() => setIsLoanModalOpen(false)}
             >
               ✕
             </button>
-
             <h2 className="text-2xl font-semibold mb-4 text-center">
               Add Loan
             </h2>
@@ -254,8 +358,10 @@ export default function LoanPage() {
                   Loan Provider
                 </label>
                 <select
-                  value={loan.lender}
-                  onChange={(e) => setLoan({ ...loan, lender: e.target.value })}
+                  value={loanForm.lender}
+                  onChange={(e) =>
+                    setLoanForm({ ...loanForm, lender: e.target.value })
+                  }
                   className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
                     errors.lender ? "border-red-500" : "border-white/20"
                   } text-white`}
@@ -263,20 +369,17 @@ export default function LoanPage() {
                   <option value="" className="bg-gray-900">
                     Select Lender
                   </option>
-                  {users.map((user) => (
-                    <option
-                    key={user._id}
-                    value={user._id}
-                    className="bg-gray-900"
-                    >
-                      {user.name}
+                  {users.map((u) => (
+                    <option key={u._id} value={u._id} className="bg-gray-900">
+                      {u.name}
                     </option>
                   ))}
                 </select>
                 {errors.lender && (
-                  <p className="text-red-400 text-sm">{errors.lender}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.lender}</p>
                 )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Loan Amount
@@ -285,16 +388,17 @@ export default function LoanPage() {
                   type="text"
                   inputMode="decimal"
                   placeholder="Loan Amount"
-                  value={loan.amount}
+                  value={loanForm.amount}
                   onChange={(e) => handleNumberInput("amount", e.target.value)}
                   className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
                     errors.amount ? "border-red-500" : "border-white/20"
                   }`}
-                  />
+                />
                 {errors.amount && (
-                  <p className="text-red-400 text-sm">{errors.amount}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.amount}</p>
                 )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Interest Rate (%)
@@ -303,7 +407,7 @@ export default function LoanPage() {
                   type="text"
                   inputMode="decimal"
                   placeholder="Interest Rate (%)"
-                  value={loan.interest}
+                  value={loanForm.interest}
                   onChange={(e) =>
                     handleNumberInput("interest", e.target.value)
                   }
@@ -312,9 +416,10 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.interest && (
-                  <p className="text-red-400 text-sm">{errors.interest}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.interest}</p>
                 )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Duration (months)
@@ -323,7 +428,7 @@ export default function LoanPage() {
                   type="text"
                   inputMode="numeric"
                   placeholder="Duration (months)"
-                  value={loan.duration}
+                  value={loanForm.duration}
                   onChange={(e) =>
                     handleNumberInput("duration", e.target.value)
                   }
@@ -332,9 +437,10 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.duration && (
-                  <p className="text-red-400 text-sm">{errors.duration}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.duration}</p>
                 )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Purpose
@@ -342,31 +448,112 @@ export default function LoanPage() {
                 <input
                   type="text"
                   placeholder="Purpose of Loan"
-                  value={loan.purpose}
+                  value={loanForm.purpose}
                   onChange={(e) =>
-                    setLoan({ ...loan, purpose: e.target.value })
+                    setLoanForm({ ...loanForm, purpose: e.target.value })
                   }
                   className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
                     errors.purpose ? "border-red-500" : "border-white/20"
                   }`}
                 />
                 {errors.purpose && (
-                  <p className="text-red-400 text-sm">{errors.purpose}</p>
+                  <p className="text-red-400 text-sm mt-1">{errors.purpose}</p>
                 )}
               </div>
+
               <button
                 onClick={addLoan}
                 disabled={isSubmitting}
-                className="w-full mt-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 
-                cursor-pointer px-4 py-2 rounded-lg"
-                >
+                className="w-full mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded-lg"
+              >
                 {isSubmitting ? "Adding Loan..." : "Add Loan"}
               </button>
             </div>
           </div>
         </div>
       )}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+          <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl border border-white/20 text-white relative">
+            <button
+              className="absolute top-3 right-3 text-gray-300 hover:text-white"
+              onClick={() => setIsFilterModalOpen(false)}
+            >
+              ✕
+            </button>
+            <h2 className="text-2xl font-semibold mb-4 text-center">
+              Filter Loans
+            </h2>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Search by lender name"
+                value={filters.name}
+                onChange={(e) =>
+                  setFilters({ ...filters, name: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+              />
+
+              <div className="flex gap-4">
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
+                  className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+                />
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
+                  className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <input
+                  type="number"
+                  placeholder="Min Amount"
+                  value={filters.minAmount}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minAmount: e.target.value })
+                  }
+                  className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Amount"
+                  value={filters.maxAmount}
+                  onChange={(e) =>
+                    setFilters({ ...filters, maxAmount: e.target.value })
+                  }
+                  className="w-1/2 px-3 py-2 rounded-lg bg-white/10 border border-white/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={resetFilters}
+                className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700"
+              >
+                Reset
+              </button>
+              <button
+                onClick={applyFilters}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-                </div>
   );
 }
