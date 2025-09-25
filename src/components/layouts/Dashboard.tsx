@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
 import image from "@/assets/welcome-back-3.png";
@@ -219,11 +219,62 @@ const Dashboard = () => {
     }));
   };
 
-  const barData = getChartData(true, barRange);
-  const lineData = getChartData(false, lineRange);
+  const barData = useMemo(() => getChartData(true, barRange), [barRange, balanceData]);
+  const lineData = useMemo(() => getChartData(false, lineRange), [lineRange, balanceData]);
 
   const barTotal = getTotalFromData(barData);
   const lineTotal = getTotalFromData(lineData);
+
+  const barChartElement = useMemo(
+    () => (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={barData}>
+          <CartesianGrid stroke="#374151" vertical={false} horizontal />
+          <XAxis
+            dataKey="name"
+            stroke="#9CA3AF"
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
+          <Bar dataKey="balance" fill="url(#colorUv)" radius={[6, 6, 0, 0]} />
+          <defs>
+            <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.9} />
+            </linearGradient>
+          </defs>
+        </BarChart>
+      </ResponsiveContainer>
+    ),
+    [barData, barRange]
+  );
+
+  const lineChartElement = useMemo(
+    () => (
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={lineData}>
+          <CartesianGrid stroke="#374151" vertical={false} horizontal />
+          <XAxis
+            dataKey="name"
+            stroke="#9CA3AF"
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
+          <Line
+            type="monotone"
+            dataKey="balance"
+            stroke="#3B82F6"
+            strokeWidth={3}
+            dot={{ r: 5, fill: "#06B6D4" }}
+            activeDot={{ r: 7, fill: "#22C55E" }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    ),
+    [lineData, lineRange]
+  );
 
   const total = partnersCount + employeesCount;
   const pieData = [
@@ -251,7 +302,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <div className="bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-4 flex justify-between fixed top-0 left-0 right-0 z-50">
+      <div className="bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-4 flex justify-between fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-50">
         <div className="desktop:hidden tablet:hidden text-white">
           <Hamburger
             isOpen={isMobileOpen}
@@ -362,29 +413,7 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barData}>
-                <CartesianGrid stroke="#374151" vertical={false} horizontal />
-                <XAxis
-                  dataKey="name"
-                  stroke="#9CA3AF"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
-                <Bar
-                  dataKey="balance"
-                  fill="url(#colorUv)"
-                  radius={[6, 6, 0, 0]}
-                />
-                <defs>
-                  <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />
-                    <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
+            {barChartElement}
             <p className="text-gray-400 text-sm mt-3">Available Balance</p>
             {/* <h3 className="text-2xl font-bold mt-2">
               {balanceData
@@ -417,26 +446,7 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={lineData}>
-                <CartesianGrid stroke="#374151" vertical={false} horizontal />
-                <XAxis
-                  dataKey="name"
-                  stroke="#9CA3AF"
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis stroke="#9CA3AF" axisLine={false} tickLine={false} />
-                <Line
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="#3B82F6"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: "#06B6D4" }}
-                  activeDot={{ r: 7, fill: "#22C55E" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {lineChartElement}
             <p className="text-gray-400 text-sm mt-3">Available Capital</p>
             {/* <h3 className="text-2xl font-bold mt-2">
               {balanceData

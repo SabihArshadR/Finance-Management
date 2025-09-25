@@ -1,17 +1,18 @@
-"use client"
-import dynamic from 'next/dynamic';
+"use client";
+import dynamic from "next/dynamic";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import React from "react";
 
-const Dashboard = dynamic(
-  () => import('@/components/layouts/Dashboard'),
-  { ssr: false }
-);
+const Dashboard = dynamic(() => import("@/components/layouts/Dashboard"), {
+  ssr: false,
+});
 
 const page = () => {
   return (
     <DashboardLayout>
-      <Dashboard/>
+      <div>
+        <Dashboard />
+      </div>
     </DashboardLayout>
   );
 };

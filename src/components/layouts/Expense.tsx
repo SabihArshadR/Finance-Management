@@ -65,6 +65,7 @@ export default function ExpenseManager() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filteredTxns, setFilteredTxns] = useState<any[]>([]);
@@ -110,6 +111,7 @@ export default function ExpenseManager() {
 
   const fetchTransactions = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return;
       const res = await axios.get(
@@ -123,6 +125,8 @@ export default function ExpenseManager() {
       setFilteredTxns(data);
     } catch (err: any) {
       console.error("Error fetching transactions:", err.response?.data || err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -248,8 +252,8 @@ export default function ExpenseManager() {
   ];
 
   return (
-    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-10 fixed">
-      <div className="text-white bg-gray-900 py-3 desktop:px-10 tablet:px-10 mobile:px-2 fixed top-0 left-0 right-0 z-50">
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
+      <div className="text-white bg-gray-900 py-3 desktop:px-10 tablet:px-10 mobile:px-2 fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-50">
         <div className="flex justify-between items-center">
           <div className="desktop:hidden tablet:hidden text-white">
             <Hamburger
@@ -326,14 +330,16 @@ export default function ExpenseManager() {
         ) : null}
       </div>
 
-      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className=" desktop:p-10 tablet:p-10 mobile:p-2 text-white">
         <div>
-          {filteredTxns.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-gray-400">Loading transactions...</p>
+          ) : filteredTxns.length === 0 ? (
             <p className="text-gray-400 text-center">
               No transactions available.
             </p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 desktop:gap-5 tablet:gap-5 mobile:gap-2">
+            <div className="grid mobile:grid-cols-1 desktop:grid-cols-2 tablet:grid-cols-2 desktop:gap-5 tablet:gap-5 mobile:gap-2">
               {filteredTxns.map((txn) => (
                 <div
                   key={txn._id}
@@ -365,7 +371,7 @@ export default function ExpenseManager() {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="w-full max-w-lg bg-white/10 p-6 rounded-2xl shadow-xl text-white relative border border-white/20">
               <button
-                className="absolute top-3 right-3 text-gray-400 hover:text-white"
+                className="absolute top-3 right-3 text-gray-400 hover:text-white cursor-pointer"
                 onClick={() => setShowFilterModal(false)}
               >
                 <FiX size={20} />
@@ -375,42 +381,54 @@ export default function ExpenseManager() {
               </h2>
 
               <div className="space-y-4">
+                <label className="text-sm font-medium">Flow</label>
                 <select
                   value={filterFlow}
                   onChange={(e) => setFilterFlow(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
                 >
-                  <option value="">All Flows</option>
-                  <option value="in">In</option>
-                  <option value="out">Out</option>
+                  <option value="" className="bg-gray-900">
+                    All Flows
+                  </option>
+                  <option value="in" className="bg-gray-900">
+                    In
+                  </option>
+                  <option value="out" className="bg-gray-900">
+                    Out
+                  </option>
                 </select>
-
+                <label className="text-sm font-medium">User</label>
                 <select
                   value={filterUser}
                   onChange={(e) => setFilterUser(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
                 >
-                  <option value="">All Users</option>
+                  <option value="" className="bg-gray-900">
+                    All Users
+                  </option>
                   {users.map((u) => (
-                    <option key={u._id} value={u._id}>
+                    <option key={u._id} value={u._id} className="bg-gray-900">
                       {u.name}
                     </option>
                   ))}
                 </select>
-
+                <label className="text-sm font-medium">Category</label>
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
                 >
-                  <option value="">All Categories</option>
+                  <option value="" className="bg-gray-900">
+                    All Categories
+                  </option>
                   {categories.map((c) => (
-                    <option key={c._id} value={c._id}>
+                    <option key={c._id} value={c._id} className="bg-gray-900">
                       {c.name}
                     </option>
                   ))}
                 </select>
 
+                  <label className="text-sm font-medium">Date Range</label>
                 <div className="flex desktop:gap-2 mobile:gap-10 desktop:mr-0 mobile:mr-5">
                   <div className="relative w-full">
                     {!filterDateRange.start && (
@@ -481,7 +499,7 @@ export default function ExpenseManager() {
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl shadow-xl text-white relative border border-white/20">
               <button
-                className="absolute top-3 right-3 text-gray-400 hover:text-white"
+                className="absolute top-3 right-3 text-gray-400 hover:text-white cursor-pointer"
                 onClick={() => setShowExpenseModal(false)}
               >
                 <FiX size={20} />
@@ -507,9 +525,15 @@ export default function ExpenseManager() {
                     errors.category ? "border-red-500" : "border-white/20"
                   }`}
                 >
-                  <option value="">Select Category</option>
+                  <option value="" className="bg-gray-900">
+                    Select Category
+                  </option>
                   {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
+                    <option
+                      key={cat._id}
+                      value={cat._id}
+                      className="bg-gray-900"
+                    >
                       {cat.name}
                     </option>
                   ))}
@@ -571,14 +595,19 @@ export default function ExpenseManager() {
                     errors.employee ? "border-red-500" : "border-white/20"
                   }`}
                 >
-                  <option value="">Select Employee</option>
+                  <option value="" className="bg-gray-900">
+                    Select Employee
+                  </option>
                   {users.map((user) => (
-                    <option key={user._id} value={user._id}>
+                    <option
+                      key={user._id}
+                      value={user._id}
+                      className="bg-gray-900"
+                    >
                       {user.name}
                     </option>
                   ))}
                 </select>
-
                 <label className="block text-sm font-medium">Flow</label>
                 <select
                   value={form.flow}
@@ -587,8 +616,12 @@ export default function ExpenseManager() {
                   }
                   className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
                 >
-                  <option value="in">In</option>
-                  <option value="out">Out</option>
+                  <option value="in" className="bg-gray-900">
+                    In
+                  </option>
+                  <option value="out" className="bg-gray-900">
+                    Out
+                  </option>
                 </select>
 
                 <button

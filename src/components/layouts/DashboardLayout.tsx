@@ -62,7 +62,7 @@ export default function DashboardLayout({
           <Hamburger isOpen={false} onToggle={() => setIsMobileOpen(true)} />
         </div>
 
-        <main className="h-full w-full">
+        <main className="w-full h-full">
           <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 h-full w-full overflow-auto">
             {children}
           </div>

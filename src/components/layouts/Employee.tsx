@@ -147,6 +147,8 @@ export default function Home() {
     if (!selectedEmployee && !form.password)
       newErrors.password = "Password is required";
     if (!form.salary) newErrors.salary = "Salary is required";
+    if (!form.bankAccount) newErrors.bankAccount = "Account is required";
+    if (!form.allowance) newErrors.allowance = "Allowance is required";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -171,12 +173,28 @@ export default function Home() {
       };
 
       if (selectedEmployee) {
-        await axios.put(`${apiUrl}/api/auth/${selectedEmployee._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const isUnchanged =
+        selectedEmployee.name === payload.name &&
+        selectedEmployee.email === payload.email &&
+        selectedEmployee.salary === payload.salary &&
+        (selectedEmployee.meta?.bankAccount || "") === payload.meta.bankAccount &&
+        (selectedEmployee.meta?.allowance || 0) === payload.meta.allowance;
+
+      if (isUnchanged && !form.password) {
+        ErrorToast("Please make a change before saving");
+        setLoading(false);
+        return;
+      }
+        await axios.put(
+          `${apiUrl}/api/auth/update/${selectedEmployee._id}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         SuccessToast("Employee updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/auth/register`, payload, {
+        await axios.post(`${apiUrl}/api/auth/add-user`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         SuccessToast("Employee added successfully");
@@ -225,7 +243,7 @@ export default function Home() {
 
   return (
     <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
-      <div className="bg-gray-900 py-3 fixed top-0 left-0 right-0 z-50">
+      <div className="bg-gray-900 py-3 fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-20">
         <div className="flex justify-between items-center desktop:px-10 tablet:px-10 mobile:px-2 ">
           <div className="desktop:hidden tablet:hidden text-white">
             <Hamburger
@@ -316,11 +334,9 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className="desktop:p-10 tablet:p-10 mobile:p-2 text-white">
         {fetching ? (
-          <p className="text-center text-gray-400 mt-10">
-            Loading employees...
-          </p>
+          <p className="text-center text-gray-400">Loading employees...</p>
         ) : filteredEmployees.length === 0 ? (
           <p className="text-center text-gray-400 mt-10">No employees found.</p>
         ) : viewMode === "grid" ? (
@@ -379,7 +395,7 @@ export default function Home() {
       </div>
 
       {isSearchModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
           <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
@@ -483,7 +499,7 @@ export default function Home() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
           <div className="w-full mt-10 max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
@@ -501,10 +517,12 @@ export default function Home() {
                 placeholder="Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.name ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.name && (
-                <p className="text-red-400 text-sm">{errors.name}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.name}</p>
               )}
 
               <input
@@ -512,10 +530,12 @@ export default function Home() {
                 placeholder="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.email ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.email && (
-                <p className="text-red-400 text-sm">{errors.email}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.email}</p>
               )}
 
               {!selectedEmployee && (
@@ -527,10 +547,12 @@ export default function Home() {
                     onChange={(e) =>
                       setForm({ ...form, password: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.password ? "border-red-500" : "border-white/20"
+                  }`}
                   />
                   {errors.password && (
-                    <p className="text-red-400 text-sm">{errors.password}</p>
+                    <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.password}</p>
                   )}
                 </>
               )}
@@ -540,10 +562,12 @@ export default function Home() {
                 placeholder="Salary"
                 value={form.salary}
                 onChange={(e) => setForm({ ...form, salary: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.salary ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.salary && (
-                <p className="text-red-400 text-sm">{errors.salary}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.salary}</p>
               )}
 
               <input
@@ -553,9 +577,13 @@ export default function Home() {
                 onChange={(e) =>
                   setForm({ ...form, bankAccount: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.bankAccount ? "border-red-500" : "border-white/20"
+                  }`}
               />
-
+              {errors.bankAccount && (
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.bankAccount}</p>
+              )}
               <input
                 type="number"
                 placeholder="Allowance"
@@ -563,15 +591,20 @@ export default function Home() {
                 onChange={(e) =>
                   setForm({ ...form, allowance: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.allowance ? "border-red-500" : "border-white/20"
+                  }`}
               />
+              {errors.allowance && (
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.allowance}</p>
+              )}
             </div>
 
             <div className="flex justify-end mt-6">
               <button
                 onClick={handleSaveEmployee}
                 disabled={loading}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:opacity-50 w-full"
               >
                 {loading ? "Saving..." : "Save"}
               </button>

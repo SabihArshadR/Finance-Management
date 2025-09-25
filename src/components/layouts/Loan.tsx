@@ -253,8 +253,8 @@ export default function LoanPage() {
   ];
 
   return (
-    <div>
-      <div className="text-white bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-3 fixed top-0 left-0 right-0 z-50">
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
+      <div className="text-white bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-3 fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-50">
         <div className="flex justify-between items-center">
           <div className="desktop:hidden tablet:hidden text-white">
             <Hamburger
@@ -318,9 +318,9 @@ export default function LoanPage() {
           <IoFilter size={20} />
         </button>
       </div>
-      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className="desktop:p-10 tablet:p-10 mobile:p-2  text-white">
         {loading ? (
-          <div className="text-center text-gray-400 mt-20">
+          <div className="text-center text-gray-400">
             Loading loans...
           </div>
         ) : filteredLoans.length === 0 ? (
@@ -379,9 +379,9 @@ export default function LoanPage() {
       </div>
       {isLoanModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
-          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+          <div className="w-full mt-10 max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white"
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer"
               onClick={() => setIsLoanModalOpen(false)}
             >
               ✕
@@ -414,7 +414,7 @@ export default function LoanPage() {
                   ))}
                 </select>
                 {errors.lender && (
-                  <p className="text-red-400 text-sm mt-1">{errors.lender}</p>
+                  <p className="text-red-400 text-sm mt-1 desktop:block tablet:block mobile:hidden">{errors.lender}</p>
                 )}
               </div>
 
@@ -433,7 +433,7 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.amount && (
-                  <p className="text-red-400 text-sm mt-1">{errors.amount}</p>
+                  <p className="text-red-400 text-sm mt-1 desktop:block tablet:block mobile:hidden">{errors.amount}</p>
                 )}
               </div>
 
@@ -454,7 +454,7 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.interest && (
-                  <p className="text-red-400 text-sm mt-1">{errors.interest}</p>
+                  <p className="text-red-400 text-sm mt-1 desktop:block tablet:block mobile:hidden">{errors.interest}</p>
                 )}
               </div>
 
@@ -475,12 +475,12 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.duration && (
-                  <p className="text-red-400 text-sm mt-1">{errors.duration}</p>
+                  <p className="text-red-400 text-sm mt-1 desktop:block tablet:block mobile:hidden">{errors.duration}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 ">
                   Purpose
                 </label>
                 <input
@@ -495,14 +495,14 @@ export default function LoanPage() {
                   }`}
                 />
                 {errors.purpose && (
-                  <p className="text-red-400 text-sm mt-1">{errors.purpose}</p>
+                  <p className="text-red-400 text-sm mt-1 desktop:block tablet:block mobile:hidden">{errors.purpose}</p>
                 )}
               </div>
 
               <button
                 onClick={addLoan}
                 disabled={isSubmitting}
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded-lg"
+                className="w-full mt-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded-lg cursor-pointer"
               >
                 {isSubmitting ? "Adding Loan..." : "Add Loan"}
               </button>
@@ -514,7 +514,7 @@ export default function LoanPage() {
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
           <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl border border-white/20 text-white relative">
             <button
-              className="absolute top-3 right-3 text-gray-300 hover:text-white"
+              className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer"
               onClick={() => setIsFilterModalOpen(false)}
             >
               ✕
@@ -524,6 +524,7 @@ export default function LoanPage() {
             </h2>
 
             <div className="space-y-4">
+              <label className="text-sm font-medium">Name</label>
               <input
                 type="text"
                 placeholder="Search by lender name"
@@ -533,7 +534,7 @@ export default function LoanPage() {
                 }
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
               />
-
+              <label className="text-sm font-medium">Date Range</label>
               <div className="flex desktop:gap-4 mobile:gap-10 desktop:mr-0 mobile:mr-5">
                 <div className="relative w-1/2">
                   {!filters.startDate && (
@@ -556,6 +557,7 @@ export default function LoanPage() {
                       Enter end date
                     </span>
                   )}
+
                   <input
                     type="date"
                     value={filters.endDate}
@@ -566,7 +568,7 @@ export default function LoanPage() {
                   />
                 </div>
               </div>
-
+              <label className="text-sm font-medium">Amount</label>
               <div className="flex gap-4">
                 <input
                   type="number"
@@ -592,13 +594,13 @@ export default function LoanPage() {
             <div className="flex justify-between mt-6">
               <button
                 onClick={resetFilters}
-                className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700"
+                className="px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 cursor-pointer"
               >
                 Reset
               </button>
               <button
                 onClick={applyFilters}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700"
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer"
               >
                 Apply
               </button>

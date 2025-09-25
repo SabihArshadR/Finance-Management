@@ -152,12 +152,27 @@ export default function PartnersPage() {
       };
 
       if (selectedPartner) {
-        await axios.put(`${apiUrl}/api/auth/${selectedPartner._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const isUnchanged =
+          selectedPartner.name === payload.name &&
+          selectedPartner.email === payload.email &&
+          selectedPartner.percentage === payload.percentage &&
+          selectedPartner.salary === payload.salary;
+
+        if (isUnchanged && !form.password) {
+          ErrorToast("Please make a change before saving");
+          setLoading(false);
+          return;
+        }
+        await axios.put(
+          `${apiUrl}/api/auth/update/${selectedPartner._id}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         SuccessToast("Partner updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/auth/register`, payload, {
+        await axios.post(`${apiUrl}/api/auth/add-user`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         SuccessToast("Partner added successfully");
@@ -205,7 +220,7 @@ export default function PartnersPage() {
 
   return (
     <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
-      <div className="bg-gray-900 py-3 fixed top-0 left-0 right-0 z-50">
+      <div className="bg-gray-900 py-3 fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-50">
         <div className="flex justify-between items-center desktop:px-10 tablet:px-10 mobile:px-2">
           <div className="desktop:hidden tablet:hidden text-white">
             <Hamburger
@@ -294,9 +309,9 @@ export default function PartnersPage() {
         </button>
       </div>
 
-      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className="desktop:p-10 tablet:p-10 mobile:p-2 text-white">
         {fetching ? (
-          <p className="text-center text-gray-400 mt-10">Loading partners...</p>
+          <p className="text-center text-gray-400">Loading partners...</p>
         ) : filteredPartners.length === 0 ? (
           <p className="text-center text-gray-400 mt-10">No partners found.</p>
         ) : viewMode === "grid" ? (
@@ -353,7 +368,7 @@ export default function PartnersPage() {
       </div>
 
       {isFilterModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
           <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
@@ -448,8 +463,8 @@ export default function PartnersPage() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+          <div className="w-full max-w-lg mt-20 bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
               onClick={() => setIsModalOpen(false)}
@@ -466,10 +481,12 @@ export default function PartnersPage() {
                 placeholder="Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.name ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.name && (
-                <p className="text-red-400 text-sm">{errors.name}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.name}</p>
               )}
 
               <input
@@ -477,10 +494,12 @@ export default function PartnersPage() {
                 placeholder="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.email ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.email && (
-                <p className="text-red-400 text-sm">{errors.email}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.email}</p>
               )}
 
               {!selectedPartner && (
@@ -492,10 +511,12 @@ export default function PartnersPage() {
                     onChange={(e) =>
                       setForm({ ...form, password: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                    className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.password ? "border-red-500" : "border-white/20"
+                  }`}
                   />
                   {errors.password && (
-                    <p className="text-red-400 text-sm">{errors.password}</p>
+                    <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.password}</p>
                   )}
                 </>
               )}
@@ -507,10 +528,12 @@ export default function PartnersPage() {
                 onChange={(e) =>
                   setForm({ ...form, percentage: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.percentage ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.percentage && (
-                <p className="text-red-400 text-sm">{errors.percentage}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.percentage}</p>
               )}
 
               <input
@@ -518,10 +541,12 @@ export default function PartnersPage() {
                 placeholder="Salary"
                 value={form.salary}
                 onChange={(e) => setForm({ ...form, salary: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+                className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                    errors.salary ? "border-red-500" : "border-white/20"
+                  }`}
               />
               {errors.salary && (
-                <p className="text-red-400 text-sm">{errors.salary}</p>
+                <p className="text-red-400 text-sm desktop:block tablet:block mobile:hidden">{errors.salary}</p>
               )}
             </div>
 
@@ -529,7 +554,7 @@ export default function PartnersPage() {
               <button
                 onClick={handleSavePartner}
                 disabled={loading}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:opacity-50 w-full"
               >
                 {loading ? "Saving..." : "Save"}
               </button>

@@ -177,8 +177,8 @@ const Category = () => {
   ];
 
   return (
-    <div>
-      <div className="text-white bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-3 fixed top-0 left-0 right-0 z-50">
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-20">
+      <div className="text-white bg-gray-900 desktop:px-10 tablet:px-10 mobile:px-2 py-3 fixed top-0 desktop:left-64 tablet:left-64 mobile:left-0 right-0 z-50">
         <div className="flex justify-between items-center">
           <div className="desktop:hidden tablet:hidden text-white">
             <Hamburger
@@ -243,7 +243,7 @@ const Category = () => {
         </button>
       </div>
 
-      <div className="min-h-screen desktop:p-10 tablet:p-10 mobile:p-2 bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className="desktop:p-10 tablet:p-10 mobile:p-2 text-white">
         {loading ? (
           <p className="text-center text-gray-400">Loading categories...</p>
         ) : filteredCategories.length === 0 ? (
@@ -288,6 +288,7 @@ const Category = () => {
             </h2>
 
             <div className="space-y-4">
+              <label className="text-sm font-medium">Name</label>
               <input
                 type="text"
                 placeholder="Search by name"
@@ -297,9 +298,8 @@ const Category = () => {
                 }
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
               />
-
+              <label className="text-sm font-medium">Date Range</label>
               <div className="flex desktop:gap-4 mobile:gap-10 desktop:mr-0 mobile:mr-5">
-                {/* Start Date */}
                 <div className="relative w-1/2">
                   {!filters.startDate && (
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none mobile:block desktop:hidden">
@@ -315,8 +315,6 @@ const Category = () => {
                     className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
                   />
                 </div>
-
-                {/* End Date */}
                 <div className="relative w-1/2">
                   {!filters.endDate && (
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none mobile:block desktop:hidden">
@@ -365,6 +363,7 @@ const Category = () => {
             <h2 className="text-2xl font-semibold mb-4 text-center">
               Add Category
             </h2>
+            <label className="text-sm font-medium">Category Name</label>
             <input
               type="text"
               value={newCategory}
@@ -372,7 +371,7 @@ const Category = () => {
               placeholder="Category Name"
               className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
             />
-            <label className="block text-sm font-medium mt-4 mb-1">Flow</label>
+            {/* <label className="block text-sm font-medium mt-4 mb-1">Flow</label>
             <select
               value={categoryFlow}
               onChange={(e) => setCategoryFlow(e.target.value as "in" | "out")}
@@ -384,7 +383,7 @@ const Category = () => {
               <option className="bg-gray-900" value="out">
                 Out
               </option>
-            </select>
+            </select> */}
             <button
               onClick={addCategory}
               disabled={isAddingCategory}
