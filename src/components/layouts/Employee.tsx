@@ -484,7 +484,7 @@ export default function Home() {
 
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
+          <div className="w-full mt-10 max-w-lg bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-2xl shadow-xl text-white relative">
             <button
               className="absolute top-3 right-3 text-gray-300 hover:text-white cursor-pointer text-xl"
               onClick={() => setIsModalOpen(false)}

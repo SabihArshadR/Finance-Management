@@ -2,12 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  FiHome,
-  FiUsers,
-  FiDollarSign,
-  FiCreditCard,
-} from "react-icons/fi";
+import { FiHome, FiUsers, FiDollarSign, FiCreditCard } from "react-icons/fi";
 import { TbCategory } from "react-icons/tb";
 import MobileSidebar from "../ui/MobileSidebar";
 import Hamburger from "../ui/Hamburger";

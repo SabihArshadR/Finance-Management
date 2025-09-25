@@ -248,7 +248,7 @@ export default function ExpenseManager() {
   ];
 
   return (
-    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-0">
+    <div className="desktop:mb-0 tablet:mb-0 mobile:mb-10 fixed">
       <div className="text-white bg-gray-900 py-3 desktop:px-10 tablet:px-10 mobile:px-2 fixed top-0 left-0 right-0 z-50">
         <div className="flex justify-between items-center">
           <div className="desktop:hidden tablet:hidden text-white">
