@@ -428,7 +428,7 @@ export default function ExpenseManager() {
                   ))}
                 </select>
 
-                  <label className="text-sm font-medium">Date Range</label>
+                <label className="text-sm font-medium">Date Range</label>
                 <div className="flex desktop:gap-2 mobile:gap-10 desktop:mr-0 mobile:mr-5">
                   <div className="relative w-full">
                     {!filterDateRange.start && (
@@ -538,19 +538,24 @@ export default function ExpenseManager() {
                     </option>
                   ))}
                 </select>
+                {errors.category && (
+                  <p className="text-red-500 text-sm desktop:block tablet:block mobile:hidden">{errors.category}</p>
+                )}
 
-                <label className="block text-sm font-medium">Amount</label>
+                <label className="text-sm font-medium">Amount</label>
                 <input
                   type="text"
                   placeholder="Amount"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                  className={`w-full desktop:px-4 desktop:py-3 tablet:px-4 tablet:py-3 mobile:px-3 mobile:py-1 rounded-xl bg-white/10 border ${
                     errors.amount ? "border-red-500" : "border-white/20"
                   }`}
                 />
-
-                <label className="block text-sm font-medium">Date</label>
+                {errors.amount && (
+                  <p className="text-red-500 text-sm desktop:block tablet:block mobile:hidden">{errors.amount}</p>
+                )}
+                <label className="text-sm font-medium">Date</label>
                 <div className="relative w-full desktop:pr-0 mobile:pr-5">
                   {!form.date && (
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none mobile:block desktop:hidden">
@@ -566,8 +571,10 @@ export default function ExpenseManager() {
                     }`}
                   />
                 </div>
-
-                <label className="block text-sm font-medium">Description</label>
+                {errors.date && (
+                  <p className="text-red-500 text-sm desktop:block tablet:block mobile:hidden">{errors.date}</p>
+                )}
+                <label className="text-sm font-medium">Description</label>
                 <input
                   type="text"
                   placeholder="Description"
@@ -575,12 +582,16 @@ export default function ExpenseManager() {
                   onChange={(e) =>
                     setForm({ ...form, description: e.target.value })
                   }
-                  className={`w-full px-4 py-3 rounded-xl bg-white/10 border ${
+                  className={`w-full desktop:px-4 desktop:py-3 tablet:px-4 tablet:py-3 mobile:px-3 mobile:py-1 rounded-xl bg-white/10 border ${
                     errors.description ? "border-red-500" : "border-white/20"
                   }`}
                 />
-
-                <label className="block text-sm font-medium">Employee</label>
+                {errors.description && (
+                  <p className="text-red-500 text-sm desktop:block tablet:block mobile:hidden">
+                    {errors.description}
+                  </p>
+                )}
+                <label className="text-sm font-medium">Employee</label>
                 <select
                   value={form.employee}
                   onChange={(e) =>
@@ -608,7 +619,10 @@ export default function ExpenseManager() {
                     </option>
                   ))}
                 </select>
-                <label className="block text-sm font-medium">Flow</label>
+                {errors.employee && (
+                  <p className="text-red-500 text-sm desktop:block tablet:block mobile:hidden">{errors.employee}</p>
+                )}
+                <label className="text-sm font-medium">Flow</label>
                 <select
                   value={form.flow}
                   onChange={(e) =>
